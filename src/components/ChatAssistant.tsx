@@ -204,14 +204,14 @@ function getAiResponse(text: string, lang: Language): string {
   const t = text.toLowerCase();
   
   if (lang === 'PIDGIN') {
-    if (t.includes('data')) return "You spend 62% of your data on TikTok and Instagram. Social bundle fit save you better money o!";
-    if (t.includes('cheaper')) return "Pulse Flexi for ₦3,500 go give you 10GB plus extra for social media. Na best value for you!";
+    if (t.includes('data')) return "You spend 62% of your data on TikTok and Instagram. Pulse Plus fit save you better money o!";
+    if (t.includes('cheaper')) return "Pulse Plus for ₦3,500 go give you 15GB plus extra for Instagram. Na best value for you!";
     return "I hear you. ClarityAI dey here to help you rearrange your MTN lifestyle.";
   }
 
-  if (t.includes('data')) return "Analysis shows you spend 62% of your data on TikTok and Instagram. A Social bundle would reduce your monthly spend significantly.";
-  if (t.includes('cheaper')) return "I recommend switching to Pulse Flexi. At ₦3,500, it offers 10GB + Social bonuses, saving you about ₦1,500 compared to your current plan.";
-  if (t.includes('compare')) return "Comparing Pulse vs BizPlus: Pulse offers better social bonuses while BizPlus is geared towards business hours data. Based on your usage, Pulse is 85% more efficient.";
+  if (t.includes('data')) return "Analysis shows you spend 62% of your data on TikTok and Instagram. A Social bundle like Pulse Plus would reduce your monthly spend.";
+  if (t.includes('cheaper')) return "I recommend switching to Pulse Plus. At ₦3,500, it offers 15GB + Social bonuses, giving you much more value than your current micro-spend.";
+  if (t.includes('compare')) return "Comparing Pulse Plus vs BizPlus Starter: Pulse offers better social bonuses while BizPlus is geared towards business shared data. Based on your usage, Pulse is 84% more efficient.";
   
   return "That's a great question. Based on your usage patterns in Nigeria, I can find the perfect MTN bundle for you. What else would you like to know?";
 }

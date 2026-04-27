@@ -143,10 +143,15 @@ export default function Dashboard({ language, onAction }: DashboardProps) {
         className="bg-mtn-yellow p-4 rounded-2xl flex items-center gap-4 relative overflow-hidden"
       >
         <div className="flex-1 relative z-10">
-          <h4 className="text-sm font-black text-mtn-blue">BizPlus Tier 2 is out!</h4>
-          <p className="text-[10px] font-bold text-mtn-blue/60">Optimized for your SME growth.</p>
+          <h4 className="text-sm font-black text-mtn-blue">BizPlus Starter is Live!</h4>
+          <p className="text-[10px] font-bold text-mtn-blue/60">Optimized for your SME growth with 50GB shared data.</p>
         </div>
-        <button className="px-4 py-2 bg-mtn-blue text-white text-[10px] font-bold rounded-xl relative z-10">Learn More</button>
+        <button 
+          onClick={() => onAction('plans')}
+          className="px-4 py-2 bg-mtn-blue text-white text-[10px] font-bold rounded-xl relative z-10"
+        >
+          Check am
+        </button>
         <div className="absolute top-0 right-0 opacity-10 -translate-y-1/3 translate-x-1/3">
            <Smartphone className="w-24 h-24 stroke-[4px]" />
         </div>
