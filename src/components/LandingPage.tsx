@@ -22,7 +22,7 @@ export default function LandingPage({ onStart }: LandingPageProps) {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-mtn-yellow/10 border border-mtn-yellow/20 rounded-full mb-6 text-mtn-blue font-semibold text-xs tracking-wider uppercase">
               <Zap className="w-3 h-3 fill-mtn-yellow" />
-              Hackathon Winner Tech
+              MTN ClarityAI
             </div>
 
             <h1 className="text-4xl md:text-7xl font-extrabold leading-[1.1] mb-6 text-mtn-blue tracking-tight">

@@ -69,11 +69,11 @@ export default function ChatAssistant({ language, onBack, initialMessage }: Chat
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50">
+    <div className="flex flex-col min-h-0 h-[calc(100vh-80px)] md:h-full bg-slate-50 relative">
       {/* Header */}
       <header className="px-4 py-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-10 md:py-6 md:px-8">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl transition-colors md:hidden">
+          <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
             <ArrowLeft className="w-5 h-5 text-mtn-blue" />
           </button>
           <div className="flex items-center gap-3">

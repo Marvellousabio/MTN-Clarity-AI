@@ -45,7 +45,7 @@ export default function App() {
   }
 
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab} showNav={activeTab !== 'chat'}>
+    <Layout activeTab={activeTab} onTabChange={setActiveTab} showNav={true}>
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
