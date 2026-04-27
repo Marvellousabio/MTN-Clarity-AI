@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mtn-yellow: #FFCC00;
+  --color-mtn-blue: #003366;
+  --font-sans: "Inter", "Outfit", "SF Pro Text", -apple-system, BlinkMacSystemFont, sans-serif;
+  --radius-2xl: 1.5rem;
+}
+
+@layer base {
+  body {
+    @apply antialiased;
+  }
+}
