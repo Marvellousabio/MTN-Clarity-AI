@@ -56,12 +56,14 @@ export default function ChatAssistant({ language, onBack, initialMessage }: Chat
     // Simulate AI response
     setTimeout(() => {
       const aiResponseText = getAiResponse(text, language);
+      const aiSuggestions = getSuggestions(text, language);
+      
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'ai',
         text: aiResponseText,
         timestamp: new Date(),
-        suggestions: ['Compare Plans', 'Show Savings', 'Switch Bundle'],
+        suggestions: aiSuggestions,
       };
       setIsTyping(false);
       setMessages(prev => [...prev, aiMsg]);
@@ -69,9 +71,9 @@ export default function ChatAssistant({ language, onBack, initialMessage }: Chat
   };
 
   return (
-    <div className="flex flex-col min-h-0 h-[calc(100vh-80px)] md:h-full bg-slate-50 relative">
+    <div className="flex flex-col h-full bg-slate-50 relative pb-20 md:pb-0">
       {/* Header */}
-      <header className="px-4 py-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-10 md:py-6 md:px-8">
+      <header className="px-4 py-3 bg-white border-b border-slate-100 flex items-center justify-between z-10 md:py-6 md:px-8">
         <div className="flex items-center gap-3">
           <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
             <ArrowLeft className="w-5 h-5 text-mtn-blue" />
@@ -190,12 +192,23 @@ export default function ChatAssistant({ language, onBack, initialMessage }: Chat
 
 function AssistantAvatar() {
   return (
-    <svg viewBox="0 0 100 100" className="w-8 h-8 fill-mtn-blue">
-      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="4" />
-      <path d="M30 40Q50 30 70 40M30 60Q50 70 70 60" stroke="#003366" strokeWidth="6" fill="none" strokeLinecap="round" />
-      <circle cx="40" cy="50" r="4" fill="#003366" />
-      <circle cx="60" cy="50" r="4" fill="#003366" />
-      <path d="M40 70Q50 75 60 70" stroke="#003366" strokeWidth="4" fill="none" strokeLinecap="round" />
+    <svg viewBox="0 0 100 100" className="w-8 h-8">
+      <defs>
+        <linearGradient id="avatarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{ stopColor: '#0066CC' }} />
+          <stop offset="100%" style={{ stopColor: '#003366' }} />
+        </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="48" fill="url(#avatarGrad)" />
+      <path d="M30 50 L45 35 L70 50 L55 65 Z" fill="white" fillOpacity="0.2" />
+      <circle cx="50" cy="50" r="15" fill="#FFCB05" />
+      <path d="M40 50 L50 40 L60 50 L50 60 Z" fill="white" fillOpacity="0.9" />
+      <motion.circle 
+        cx="50" cy="50" r="25" 
+        stroke="white" strokeWidth="0.5" fill="none"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.1, 0.3] }}
+        transition={{ duration: 3, repeat: Infinity }}
+      />
     </svg>
   );
 }
@@ -204,14 +217,51 @@ function getAiResponse(text: string, lang: Language): string {
   const t = text.toLowerCase();
   
   if (lang === 'PIDGIN') {
-    if (t.includes('data')) return "You spend 62% of your data on TikTok and Instagram. Pulse Plus fit save you better money o!";
-    if (t.includes('cheaper')) return "Pulse Plus for ₦3,500 go give you 15GB plus extra for Instagram. Na best value for you!";
-    return "I hear you. ClarityAI dey here to help you rearrange your MTN lifestyle.";
+    if (t.includes('data') || t.includes('finish')) return "You spend 62% of your data on TikTok and Instagram. Pulse Plus fit save you better money o! You want make I compare am for you?";
+    if (t.includes('cheaper') || t.includes('saving')) return "Pulse Plus for ₦3,500 go give you 15GB plus extra for Instagram. Compared to your old plan, you go save ₦800 every month.";
+    if (t.includes('compare')) return "Comparing Pulse Plus and BizPlus Starter: Pulse Plus better for data, BizPlus good for shared business lines. Pulse is 84% better fit for you.";
+    if (t.includes('switch') || t.includes('activation')) return "To switch, just dial *131*5# on your phone. You want make I show you how rollover dey work?";
+    return "I hear you. ClarityAI dey here to help you rearrange your MTN lifestyle and save better money.";
   }
 
-  if (t.includes('data')) return "Analysis shows you spend 62% of your data on TikTok and Instagram. A Social bundle like Pulse Plus would reduce your monthly spend.";
-  if (t.includes('cheaper')) return "I recommend switching to Pulse Plus. At ₦3,500, it offers 15GB + Social bonuses, giving you much more value than your current micro-spend.";
-  if (t.includes('compare')) return "Comparing Pulse Plus vs BizPlus Starter: Pulse offers better social bonuses while BizPlus is geared towards business shared data. Based on your usage, Pulse is 84% more efficient.";
+  if (t.includes('data') || t.includes('usage')) return "Analysis shows you spend 62% of your data on social apps (TikTok & Instagram). A targeted bundle like Pulse Plus would reduce your primary data drain. Should we compare it?";
+  if (t.includes('cheaper') || t.includes('saving')) return "Switching to Pulse Plus at ₦3,500 offers 15GB + Social bonuses. This would save you approximately ₦800 monthly while increasing your usable data.";
+  if (t.includes('compare')) return "Comparing Pulse Plus vs BizPlus Starter: Pulse Plus offers social-specific data which matches your high social usage (84% score). BizPlus is tailored for SMEs with shared pools.";
+  if (t.includes('switch') || t.includes('activation')) return "The activation code for Pulse Plus is *131*5#. Once activated, your existing data will rollover if you renew before expiry.";
   
-  return "That's a great question. Based on your usage patterns in Nigeria, I can find the perfect MTN bundle for you. What else would you like to know?";
+  return "I'm ClarityAI, your MTN plan assistant. I can analyze your usage, recommend cheaper bundles, or help you compare different MTN tariffs. What can I help you with today?";
+}
+
+function getSuggestions(text: string, lang: Language): string[] {
+  const t = text.toLowerCase();
+  
+  // Logic for Pidgin
+  if (lang === 'PIDGIN') {
+    if (t.includes('data') || t.includes('finish')) {
+      return ['Show cheaper bundles', 'Compare Plans'];
+    }
+    if (t.includes('compare')) {
+      return ['Show Savings', 'How to switch?'];
+    }
+    if (t.includes('saving') || t.includes('cheaper')) {
+      return ['Compare Plans', 'Send me activation code'];
+    }
+    return ['Why my data finish?', 'Show cheaper bundles'];
+  }
+
+  // Standard English logic
+  if (t.includes('data') || t.includes('usage')) {
+    return ['Compare Plans', 'Show Savings'];
+  }
+  if (t.includes('compare')) {
+    return ['Show Savings', 'Switch Bundle'];
+  }
+  if (t.includes('saving') || t.includes('cheaper')) {
+    return ['Compare Plans', 'Activation Code'];
+  }
+  if (t.includes('switch') || t.includes('activation')) {
+    return ['View all plans', 'Analyze overspend'];
+  }
+
+  return ['Compare Pulse Plus vs BizPlus', 'Show cheaper bundles', 'Why my data finish fast?'];
 }
