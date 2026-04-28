@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Phone, Mail, Bell, Shield, HelpCircle, LogOut, ChevronRight, Edit3, Check, X, MessageCircle, FileText, Lock } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useNotifications } from '../context/NotificationContext';
 import { Language } from '../types';

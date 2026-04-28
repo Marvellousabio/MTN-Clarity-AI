@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import React, { useState, useRef, useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bell, Check, Trash2, ArrowRight, CheckCheck } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
