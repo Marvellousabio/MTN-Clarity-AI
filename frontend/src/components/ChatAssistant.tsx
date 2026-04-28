@@ -91,9 +91,9 @@ export default function ChatAssistant({ language, onBack, initialMessage }: Chat
             </div>
           </div>
         </div>
-        <button className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
-          <MoreHorizontal className="w-5 h-5 text-slate-400" />
-        </button>
+         <button className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+           <MoreHorizontal className="w-5 h-5 text-slate-400 hover:text-mtn-blue transition-colors" />
+         </button>
       </header>
 
       {/* Chat Area */}
@@ -172,14 +172,14 @@ export default function ChatAssistant({ language, onBack, initialMessage }: Chat
           <div className="flex items-center gap-1">
             <button
               type="button"
-              className="p-3 text-slate-400 hover:text-mtn-blue transition-colors rounded-xl"
+              className="p-3 text-slate-400 hover:text-mtn-blue transition-colors rounded-xl hover:bg-slate-50"
             >
               <Mic className="w-5 h-5" />
             </button>
             <button
               type="submit"
               disabled={!input.trim()}
-              className="p-3 bg-mtn-yellow text-mtn-blue rounded-xl shadow-lg shadow-mtn-yellow/20 disabled:opacity-50 disabled:shadow-none translate-x-0 active:scale-95 transition-all"
+              className="p-3 bg-mtn-yellow text-mtn-blue rounded-xl shadow-lg shadow-mtn-yellow/20 disabled:opacity-50 disabled:shadow-none translate-x-0 active:scale-95 transition-all hover:bg-mtn-yellow/90"
             >
               <Send className="w-5 h-5 fill-mtn-blue" />
             </button>

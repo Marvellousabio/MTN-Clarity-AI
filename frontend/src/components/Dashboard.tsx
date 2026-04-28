@@ -32,9 +32,12 @@ export default function Dashboard({ language, onAction }: DashboardProps) {
           </h2>
           <p className="text-slate-400 text-sm font-medium">MTN ClarityAI Premium</p>
         </div>
-        <div className="w-12 h-12 rounded-2xl bg-mtn-yellow/10 flex items-center justify-center border border-mtn-yellow/20">
-          <UserImage />
-        </div>
+         <div 
+           onClick={() => onAction('profile')}
+           className="w-12 h-12 rounded-2xl bg-mtn-yellow/10 flex items-center justify-center border border-mtn-yellow/20 cursor-pointer hover:bg-mtn-yellow/20 transition-all hover:scale-105 active:scale-95"
+         >
+           <UserImage />
+         </div>
       </motion.header>
 
       {/* Main Stats Grid */}

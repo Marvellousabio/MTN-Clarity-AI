@@ -1,21 +1,56 @@
-import { motion, AnimatePresence } from 'motion/react';
-import { Home, MessageSquare, PieChart, Layers, User } from 'lucide-react';
-import { ReactNode } from 'react';
+import { motion } from 'motion/react';
+import { Home, MessageSquare, PieChart, Layers, User, Bell, Settings } from 'lucide-react';
+import { useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { useState } from 'react';
+
+function UserImage() {
+  return (
+    <svg viewBox="0 0 100 100" className="w-10 h-10 rounded-full overflow-hidden">
+      <defs>
+        <linearGradient id="user-grad-layout" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#FFCC00" />
+          <stop offset="100%" stopColor="#FB923C" />
+        </linearGradient>
+      </defs>
+      <circle cx="50" cy="50" r="50" fill="url(#user-grad-layout)" />
+      <circle cx="50" cy="40" r="20" fill="white" opacity="0.8" />
+      <path d="M20 90C20 70 35 60 50 60C65 60 80 70 80 90" fill="white" opacity="0.8" />
+    </svg>
+  );
+}
 
 interface LayoutProps {
-  children: ReactNode;
   activeTab: string;
   onTabChange: (tab: string) => void;
   showNav: boolean;
+  isAuthenticated: boolean;
+  onProfileClick: () => void;
 }
 
-export default function Layout({ children, activeTab, onTabChange, showNav }: LayoutProps) {
+export default function Layout({ 
+  activeTab, 
+  onTabChange, 
+  showNav, 
+  isAuthenticated, 
+  onProfileClick 
+}: LayoutProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleTabChange = (tabId: string) => {
+    if (tabId === 'profile') {
+      onProfileClick();
+    } else {
+      navigate(`/app/${tabId}`);
+    }
+  };
+
   const tabs = [
     { id: 'dashboard', label: 'Home', icon: Home },
     { id: 'chat', label: 'Chat', icon: MessageSquare },
     { id: 'plans', label: 'Plans', icon: Layers },
     { id: 'insights', label: 'Insights', icon: PieChart },
-    { id: 'profile', label: 'Profile', icon: User },
+    ...(isAuthenticated ? [{ id: 'profile', label: 'Profile', icon: User }] : []),
   ];
 
   return (
@@ -34,7 +69,7 @@ export default function Layout({ children, activeTab, onTabChange, showNav }: La
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => onTabChange(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all relative group ${
                   activeTab === tab.id ? 'text-mtn-blue' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                 }`}
@@ -56,11 +91,19 @@ export default function Layout({ children, activeTab, onTabChange, showNav }: La
           </nav>
 
           <div className="p-6">
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Connected as</div>
+            <div 
+               onClick={onProfileClick}
+               className="p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-mtn-yellow/5 hover:border-mtn-yellow/30 transition-all"
+            >
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Connected as</div>
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-mtn-yellow/20" />
-                <div className="font-bold text-xs text-mtn-blue">Aisha O.</div>
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-mtn-yellow shadow-sm">
+                  <UserImage />
+                </div>
+                <div>
+                  <div className="font-bold text-xs text-mtn-blue">Aisha O.</div>
+                  <div className="text-[8px] text-slate-400 font-medium">MTN: 0803XXXXXXX</div>
+                </div>
               </div>
             </div>
           </div>
@@ -68,17 +111,45 @@ export default function Layout({ children, activeTab, onTabChange, showNav }: La
       )}
 
       {/* Main Content Area */}
-      <main className={`flex-1 ${activeTab === 'chat' ? 'h-[100dvh]' : 'min-h-[100dvh]'} relative overflow-hidden transition-all duration-300 ${activeTab === 'chat' ? 'w-full' : 'md:max-w-7xl mx-auto'}`}>
-        <div className={`mx-auto h-full ${activeTab === 'chat' ? 'w-full' : 'w-full px-0 md:px-8 py-0 md:py-8'}`}>
-          <div className={`bg-white min-h-full md:rounded-[3rem] md:shadow-2xl md:shadow-slate-200/50 relative overflow-hidden ${activeTab === 'chat' ? 'h-full md:rounded-none' : ''}`}>
-            <AnimatePresence mode="wait">
-              {children}
-            </AnimatePresence>
+      <main className={`flex-1 ${location.pathname.includes('chat') ? 'h-[100dvh]' : 'min-h-[100dvh]'} relative overflow-hidden transition-all duration-300 ${location.pathname.includes('chat') ? 'w-full' : 'md:max-w-7xl mx-auto'}`}>
+        {/* Top Bar - shown on all pages except chat */}
+        {!location.pathname.includes('chat') && (
+          <div className="px-6 py-4 mb-4 flex justify-between items-center bg-white/50 backdrop-blur-md sticky top-0 z-20 md:px-0">
+            <div className="flex md:hidden items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-mtn-blue flex items-center justify-center">
+                <span className="text-mtn-yellow font-black text-sm">C</span>
+              </div>
+              <span className="font-black text-mtn-blue text-sm uppercase tracking-widest leading-none">ClarityAI</span>
+            </div>
+            <div className="hidden md:block">
+              <h1 className="text-xl font-black text-mtn-blue capitalize">{activeTab}</h1>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">MTN ClarityAI v1.0</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => alert('You have no new notifications.')}
+                className="p-2 hover:bg-slate-100 rounded-xl transition-colors relative"
+              >
+                <Bell className="w-5 h-5 text-slate-400 hover:text-mtn-blue transition-colors" />
+                <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+              </button>
+              <button 
+                onClick={() => alert('Settings panel coming soon!')}
+                className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                <Settings className="w-5 h-5 text-slate-400 hover:text-mtn-blue transition-colors" />
+              </button>
+            </div>
+          </div>
+        )}
+        <div className={`mx-auto h-full ${location.pathname.includes('chat') ? 'w-full' : 'w-full px-0 md:px-8 py-0 md:py-8'}`}>
+          <div className={`bg-white min-h-full md:rounded-[3rem] md:shadow-2xl md:shadow-slate-200/50 relative overflow-hidden ${location.pathname.includes('chat') ? 'h-full md:rounded-none' : ''}`}>
+            <Outlet />
           </div>
         </div>
 
         {/* Mobile Spacer for Fixed Nav - Not needed for chat tab as it handles its own padding */}
-        {activeTab !== 'chat' && (
+        {!location.pathname.includes('chat') && (
           <div className="h-20 md:hidden" />
         )}
       </main>

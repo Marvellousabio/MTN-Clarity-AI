@@ -22,8 +22,8 @@ export default function LanguageToggle({ current, onSelect }: LanguageToggleProp
         <button
           key={lang.id}
           onClick={() => onSelect(lang.id)}
-          className={`flex-1 py-2 px-3 text-[10px] font-black rounded-xl transition-all relative z-10 ${
-            current === lang.id ? 'text-mtn-blue' : 'text-slate-400'
+          className={`flex-1 py-2 px-3 text-[10px] font-black rounded-xl transition-all relative z-10 hover:bg-white ${
+            current === lang.id ? 'text-mtn-blue' : 'text-slate-400 hover:text-mtn-blue'
           }`}
         >
           {current === lang.id && (
