@@ -68,7 +68,7 @@ export default function Layout({ children, activeTab, onTabChange, showNav }: La
       )}
 
       {/* Main Content Area */}
-      <main className={`flex-1 min-h-[100dvh] relative overflow-hidden transition-all duration-300 ${activeTab === 'chat' ? 'w-full' : 'md:max-w-7xl mx-auto'}`}>
+      <main className={`flex-1 ${activeTab === 'chat' ? 'h-[100dvh]' : 'min-h-[100dvh]'} relative overflow-hidden transition-all duration-300 ${activeTab === 'chat' ? 'w-full' : 'md:max-w-7xl mx-auto'}`}>
         <div className={`mx-auto h-full ${activeTab === 'chat' ? 'w-full' : 'w-full px-0 md:px-8 py-0 md:py-8'}`}>
           <div className={`bg-white min-h-full md:rounded-[3rem] md:shadow-2xl md:shadow-slate-200/50 relative overflow-hidden ${activeTab === 'chat' ? 'h-full md:rounded-none' : ''}`}>
             <AnimatePresence mode="wait">
@@ -77,8 +77,10 @@ export default function Layout({ children, activeTab, onTabChange, showNav }: La
           </div>
         </div>
 
-        {/* Mobile Spacer for Fixed Nav */}
-        <div className="h-20 md:hidden" />
+        {/* Mobile Spacer for Fixed Nav - Not needed for chat tab as it handles its own padding */}
+        {activeTab !== 'chat' && (
+          <div className="h-20 md:hidden" />
+        )}
       </main>
 
       {/* Mobile Bottom Navigation */}

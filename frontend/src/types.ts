@@ -3,12 +3,19 @@ export type Language = 'EN' | 'PIDGIN' | 'HA' | 'YO' | 'IG';
 export interface Plan {
   id: string;
   name: string;
+  category: string;
   monthlyCost: number;
-  dataVolume: string;
-  nightBrowsing: string;
-  callBonus: string;
-  validity: string;
-  rollover: boolean;
+  dataGB: number;
+  callMinutes: number;
+  smsCount: number;
+  validityDays: number;
+  activationCode: string;
+  summary: string;
+  features: string[];
+  bestFor: string;
+  limitations: string;
+  competitors: string[];
+  upsellTo: string | null;
   matchScore: number;
 }
 

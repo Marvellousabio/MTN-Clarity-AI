@@ -1,6 +1,6 @@
 {
   "name": "MTN ClarityAI",
-  "description": "AI powered telecom assistant for MTN Nigeria subscribers to understand plans, analyze usage, and get personalized recommendations in multiple local languages.",
+  "description": "AI-powered plan advisor for MTN Nigeria subscribers. Built with Microsoft Semantic Kernel and AI Foundry for the 2026 Hackathon.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
