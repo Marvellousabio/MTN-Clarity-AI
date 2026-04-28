@@ -1,0 +1,6 @@
+{
+  "name": "MTN ClarityAI",
+  "description": "AI-powered plan advisor for MTN Nigeria subscribers. Built with Microsoft Semantic Kernel and AI Foundry for the 2026 Hackathon.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
