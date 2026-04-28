@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Send, User, Mic, ArrowLeft, MoreHorizontal } from 'lucide-react';
 import { STRINGS } from '../constants';
 import { Language, ChatMessage } from '../types';
+import { useNotifications } from '../context/NotificationContext';
 
 interface ChatAssistantProps {
   language: Language;
@@ -11,6 +12,7 @@ interface ChatAssistantProps {
 }
 
 export default function ChatAssistant({ language, onBack, initialMessage }: ChatAssistantProps) {
+  const { addNotification } = useNotifications();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -58,6 +60,17 @@ export default function ChatAssistant({ language, onBack, initialMessage }: Chat
       const aiResponseText = getAiResponse(text, language);
       const aiSuggestions = getSuggestions(text, language);
       
+      // Check if we should trigger a notification
+      const lowerText = text.toLowerCase();
+      if (lowerText.includes('plan') || lowerText.includes('switch') || lowerText.includes('save')) {
+        addNotification({
+          type: 'plan_update',
+          title: 'Plan Analysis Ready',
+          message: `Your request about "${text.substring(0, 30)}..." has been processed.`,
+          action: 'chat',
+        });
+      }
+
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'ai',

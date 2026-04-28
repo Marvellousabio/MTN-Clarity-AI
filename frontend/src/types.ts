@@ -1,5 +1,17 @@
 export type Language = 'EN' | 'PIDGIN' | 'HA' | 'YO' | 'IG';
 
+export type NotificationType = 'plan_update' | 'savings' | 'reminder' | 'system' | 'message';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  time: Date;
+  read: boolean;
+  action?: string;
+}
+
 export interface Plan {
   id: string;
   name: string;

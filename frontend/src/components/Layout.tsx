@@ -1,7 +1,9 @@
 import { motion } from 'motion/react';
-import { Home, MessageSquare, PieChart, Layers, User, Bell, Settings } from 'lucide-react';
+import { Home, MessageSquare, PieChart, Layers, User } from 'lucide-react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useState } from 'react';
+import NotificationCenter from './NotificationCenter';
+import SettingsPanel from './SettingsPanel';
 
 function UserImage() {
   return (
@@ -36,6 +38,7 @@ export default function Layout({
 }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleTabChange = (tabId: string) => {
     if (tabId === 'profile') {
@@ -126,18 +129,16 @@ export default function Layout({
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">MTN ClarityAI v1.0</p>
             </div>
             <div className="flex items-center gap-3">
+              <NotificationCenter />
               <button 
-                onClick={() => alert('You have no new notifications.')}
-                className="p-2 hover:bg-slate-100 rounded-xl transition-colors relative"
-              >
-                <Bell className="w-5 h-5 text-slate-400 hover:text-mtn-blue transition-colors" />
-                <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-              </button>
-              <button 
-                onClick={() => alert('Settings panel coming soon!')}
+                onClick={() => setIsSettingsOpen(true)}
                 className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
+                aria-label="Settings"
               >
-                <Settings className="w-5 h-5 text-slate-400 hover:text-mtn-blue transition-colors" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-slate-400 hover:text-mtn-blue transition-colors">
+                  <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+                </svg>
               </button>
             </div>
           </div>
@@ -183,6 +184,8 @@ export default function Layout({
           ))}
         </motion.nav>
       )}
+
+      <SettingsPanel isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 }

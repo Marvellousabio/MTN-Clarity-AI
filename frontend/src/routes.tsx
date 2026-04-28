@@ -48,8 +48,12 @@ function DashboardRoute() {
   const navigate = useNavigate();
 
   const handleAction = (action: string) => {
-    if (action === 'why-data' || action === 'cheaper' || action === 'compare' || action === 'plans') {
+    // Trigger notification for plan-related actions
+    if (action === 'why-data' || action === 'cheaper' || action === 'compare') {
+      // Will be handled in ChatAssistant
       navigate('/app/chat');
+    } else if (action === 'plans') {
+      navigate('/app/plans');
     } else if (action === 'profile') {
       navigate('/app/profile');
     }

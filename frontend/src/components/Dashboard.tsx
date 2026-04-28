@@ -1,7 +1,9 @@
 import { motion } from 'motion/react';
-import { ChevronRight, ArrowUpRight, TrendingDown, Zap, HelpCircle, Smartphone } from 'lucide-react';
+import { ChevronRight, ArrowUpRight, TrendingDown, Zap, HelpCircle, Smartphone, Bell } from 'lucide-react';
 import { STRINGS, MOCK_USER, PLANS } from '../constants';
 import { Language } from '../types';
+import { useNotifications } from '../context/NotificationContext';
+import { useEffect } from 'react';
 
 interface DashboardProps {
   language: Language;
@@ -11,6 +13,21 @@ interface DashboardProps {
 export default function Dashboard({ language, onAction }: DashboardProps) {
   const currentPlan = PLANS.find(p => p.id === MOCK_USER.currentPlanId) || PLANS[0];
   const t = STRINGS[language];
+  const { addNotification, notifications } = useNotifications();
+
+  // Demo: Simulate a new notification when dashboard loads (for testing)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (notifications.length <= 2) { // Only add if not many notifications already
+        addNotification({
+          type: 'system',
+          title: 'Dashboard Updated',
+          message: 'Your usage statistics have been refreshed.',
+        });
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const quickActions = [
     { id: 'why-data', text: t.whyMyDataFinish, icon: HelpCircle },
@@ -165,14 +182,14 @@ export default function Dashboard({ language, onAction }: DashboardProps) {
 
 function UserImage() {
   return (
-    <svg viewBox="0 0 100 100" className="w-8 h-8 rounded-full overflow-hidden">
+    <svg viewBox="0 0 100 100" className="w-12 h-12 rounded-full overflow-hidden">
       <defs>
-        <linearGradient id="user-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient id="user-grad-dashboard" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#FFCC00" />
           <stop offset="100%" stopColor="#FB923C" />
         </linearGradient>
       </defs>
-      <circle cx="50" cy="50" r="50" fill="url(#user-grad)" />
+      <circle cx="50" cy="50" r="50" fill="url(#user-grad-dashboard)" />
       <circle cx="50" cy="40" r="20" fill="white" opacity="0.8" />
       <path d="M20 90C20 70 35 60 50 60C65 60 80 70 80 90" fill="white" opacity="0.8" />
     </svg>
