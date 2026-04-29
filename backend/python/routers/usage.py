@@ -18,7 +18,7 @@ usage_service = UsageService()
 
 
 class UsageByCategory(BaseModel):
-    """One usage breakdown entry."""
+    """Usage breakdown for a category."""
 
     category: str
     percentage: float
@@ -26,7 +26,7 @@ class UsageByCategory(BaseModel):
 
 
 class CurrentUsage(BaseModel):
-    """Current month usage snapshot."""
+    """Current month usage summary."""
 
     totalDataUsed: float
     totalCallMinutes: int

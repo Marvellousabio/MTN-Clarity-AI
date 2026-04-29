@@ -18,7 +18,7 @@ plan_service = PlanService()
 
 
 class CompareIn(BaseModel):
-    """Plan comparison payload."""
+    """Plan comparison request."""
 
     planIds: list[str] = Field(min_length=1)
 

@@ -18,6 +18,7 @@ class RecommendationPlugin:
         self._service = RecommendationService()
 
     def get_plan(self, plan_id_or_name: str) -> dict[str, Any] | None:
+        """Retrieve a plan by ID or name."""
         return self._service.plan_service.get_plan(plan_id_or_name)
 
     def recommend_plan(
@@ -29,6 +30,7 @@ class RecommendationPlugin:
         number_of_lines: int = 1,
         usage_pattern: str = "work",
     ) -> dict[str, Any]:
+        """Generate ranked plan recommendations for the given usage profile."""
         return self._service.recommend_plan(
             monthly_data_gb=monthly_data_gb,
             monthly_call_minutes=monthly_call_minutes,
@@ -39,6 +41,7 @@ class RecommendationPlugin:
         )
 
     def analyze_overspend(self, current_plan_name: str, actual_data_used_gb: float, actual_call_minutes_used: int) -> dict[str, Any]:
+        """Analyze usage against the current plan and identify overspend."""
         plan = self._service.plan_service.get_plan(current_plan_name)
         if not plan:
             return {"error": "Plan not found"}

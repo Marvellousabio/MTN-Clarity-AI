@@ -106,6 +106,7 @@ class AuthService:
         self.repository.upsert(user)
 
     def _token_response(self, user: dict[str, Any]) -> dict[str, Any]:
+        """Generate tokens and update refresh token state."""
         access_token, refresh_token = self._issue_tokens(user["id"])
         user["refreshTokenHash"] = self._hash_token(refresh_token)
         user["refreshTokenExpiresAt"] = (datetime.now(timezone.utc) + timedelta(days=self.settings.refresh_token_days)).isoformat()
@@ -114,6 +115,7 @@ class AuthService:
         return {"accessToken": access_token, "refreshToken": refresh_token, "user": self._public_profile(user)}
 
     def _issue_tokens(self, subject: str) -> tuple[str, str]:
+        """Create access and refresh JWT tokens."""
         now = datetime.now(timezone.utc)
         access_payload = {
             "sub": subject,
@@ -133,21 +135,26 @@ class AuthService:
         )
 
     def _decode_token(self, token: str) -> dict[str, Any]:
+        """Verify and decode a JWT token."""
         return jwt.decode(token, self.settings.jwt_secret, algorithms=[self.settings.jwt_algorithm])
 
     @staticmethod
     def _hash_token(token: str) -> str:
+        """Hash a token using SHA256."""
         return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
     @staticmethod
     def _hash_password(password: str, salt: str) -> str:
+        """Hash a password using PBKDF2-SHA256."""
         return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 120000).hex()
 
     def _verify_password(self, password: str, salt: str, expected_hash: str) -> bool:
+        """Verify a password against its hash."""
         return hmac.compare_digest(self._hash_password(password, salt), expected_hash)
 
     @staticmethod
     def _public_profile(user: dict[str, Any]) -> dict[str, Any]:
+        """Extract public profile fields from a user document."""
         return {
             "id": user.get("id", ""),
             "name": user.get("name", ""),

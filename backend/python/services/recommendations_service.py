@@ -126,6 +126,7 @@ class RecommendationService:
         user_segment: str,
         usage_pattern: str,
     ) -> ScoredPlan:
+        """Calculate a weighted recommendation score for a plan."""
         data_score = self._calculate_data_score(plan, monthly_data_gb)
         cost_score = self._calculate_cost_score(plan, monthly_budget_naira, monthly_data_gb)
         category_score = self._calculate_category_score(plan, user_segment)
@@ -153,6 +154,7 @@ class RecommendationService:
 
     @staticmethod
     def _calculate_data_score(plan: dict[str, Any], data_gb: float) -> float:
+        """Score a plan's data allowance against user needs (0–1)."""
         if float(plan.get("dataGB", 0)) <= 0:
             return 0.0
         ratio = min(data_gb / float(plan.get("dataGB", 0)), 1.0)
@@ -160,6 +162,7 @@ class RecommendationService:
 
     @staticmethod
     def _calculate_cost_score(plan: dict[str, Any], budget: float, data_gb: float) -> float:
+        """Score a plan's cost efficiency against budget and needs (0–1)."""
         price = float(plan.get("monthlyPrice", 0))
         if price <= 0:
             return 0.0
@@ -171,10 +174,12 @@ class RecommendationService:
 
     @staticmethod
     def _calculate_category_score(plan: dict[str, Any], segment: str) -> float:
+        """Score plan category match (1.0 for match, 0.5 otherwise)."""
         return 1.0 if str(plan.get("category", "")).lower() == segment.lower() else 0.5
 
     @staticmethod
     def _calculate_feature_score(plan: dict[str, Any], usage_pattern: str) -> float:
+        """Score plan features against usage pattern (0–1)."""
         features = " ".join(plan.get("features", [])).lower()
         if usage_pattern == "streaming" and "stream" in features:
             return 1.0

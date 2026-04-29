@@ -26,7 +26,7 @@ profile_repository = ProfileRepository()
 
 
 class RecentMessage(BaseModel):
-    """One recent chat turn."""
+    """Single chat message."""
 
     role: str
     text: str
@@ -34,14 +34,14 @@ class RecentMessage(BaseModel):
 
 
 class ChatContext(BaseModel):
-    """Optional context provided by the client."""
+    """User context for enriching chat responses."""
 
     userProfile: dict[str, Any]
     recentMessages: list[RecentMessage] | None = None
 
 
 class ChatIn(BaseModel):
-    """Chat request payload."""
+    """Chat message request."""
 
     message: str = Field(min_length=1)
     language: str = "EN"
@@ -49,7 +49,7 @@ class ChatIn(BaseModel):
 
 
 class ChatOut(BaseModel):
-    """Chat response payload."""
+    """Assistant reply with metadata."""
 
     id: str
     role: str
@@ -60,7 +60,7 @@ class ChatOut(BaseModel):
 
 
 class SaveProfileIn(BaseModel):
-    """Persistable profile payload for chat sessions."""
+    """User profile for session persistence."""
 
     session_id: str = Field(min_length=1)
     name: str = Field(min_length=1)
@@ -72,7 +72,7 @@ class SaveProfileIn(BaseModel):
 
 
 class RecommendIn(BaseModel):
-    """Recommendation input for direct usage calls."""
+    """Plan recommendation request."""
 
     monthly_data_gb: float
     monthly_call_minutes: int
@@ -83,7 +83,7 @@ class RecommendIn(BaseModel):
 
 
 class AnalyzeIn(BaseModel):
-    """Overspend analysis payload."""
+    """Usage overspend analysis request."""
 
     current_plan_name: str
     actual_data_used_gb: float

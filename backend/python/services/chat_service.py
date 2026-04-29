@@ -72,6 +72,7 @@ class ChatService:
         }
 
     def _call_azure_openai(self, prompt: str) -> str:
+        """Call Azure OpenAI with system prompt and user message."""
         client = get_azure_clients().openai_client()
         response = client.chat.completions.create(
             model=get_settings().azure_openai_deployment,
@@ -85,6 +86,7 @@ class ChatService:
 
     @staticmethod
     def _find_plan_name(message_lower: str) -> str | None:
+        """Detect known plan names in a message."""
         for candidate in ("pulse flexi", "pulse plus", "xtravalue", "bizplus starter", "bizplus pro", "bizplus enterprise", "daily 5x5"):
             if candidate in message_lower:
                 return candidate
@@ -98,6 +100,7 @@ class ChatService:
         user_profile: dict[str, Any],
         recent_messages: list[dict[str, Any]],
     ) -> str:
+        """Construct the JSON prompt for Azure OpenAI."""
         payload = {
             "language": language,
             "message": message,
@@ -109,6 +112,7 @@ class ChatService:
 
     @staticmethod
     def _build_actions(evidence: dict[str, Any]) -> list[dict[str, Any]]:
+        """Build action suggestions based on detected evidence."""
         actions: list[dict[str, Any]] = []
         if evidence.get("recommendation"):
             top = evidence["recommendation"].get("top_recommendations", [])

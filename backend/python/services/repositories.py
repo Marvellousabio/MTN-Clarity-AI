@@ -46,12 +46,10 @@ class CosmosRepository:
 
     def upsert(self, document: dict[str, Any]) -> dict[str, Any]:
         """Insert or update a Cosmos document."""
-
         return self.container.upsert_item(document)
 
     def read(self, item_id: str) -> dict[str, Any] | None:
         """Read a document by its ``id`` field."""
-
         try:
             return self.container.read_item(item=item_id, partition_key=item_id)
         except Exception:
@@ -59,7 +57,6 @@ class CosmosRepository:
 
     def query(self, query: str, parameters: Iterable[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
         """Run a Cosmos SQL query and return all matching documents."""
-
         items = self.container.query_items(query=query, parameters=list(parameters or []), enable_cross_partition_query=True)
         return list(items)
 
@@ -71,6 +68,7 @@ class PlanRepository(CosmosRepository):
         super().__init__(get_settings().cosmos_plans_container)
 
     def list_plans(self, category: str = "all") -> list[dict[str, Any]]:
+        """Get all plans or filter by category."""
         if category.lower() == "all":
             return self.query("SELECT * FROM c")
         return self.query(
@@ -79,6 +77,7 @@ class PlanRepository(CosmosRepository):
         )
 
     def get_plan(self, identifier: str) -> dict[str, Any] | None:
+        """Retrieve a plan by ID or name."""
         identifier = (identifier or "").strip()
         if not identifier:
             return None
@@ -101,9 +100,11 @@ class ProfileRepository(CosmosRepository):
         super().__init__(get_settings().cosmos_profiles_container)
 
     def get_profile(self, profile_id: str) -> dict[str, Any] | None:
+        """Retrieve a user profile by ID."""
         return self.read(profile_id)
 
     def save_profile(self, profile: dict[str, Any]) -> dict[str, Any]:
+        """Save or update a user profile."""
         profile.setdefault("id", profile.get("userId") or profile.get("sessionId"))
         profile.setdefault("updatedAt", self.utc_now())
         profile.setdefault("createdAt", profile["updatedAt"])
@@ -117,6 +118,7 @@ class UsageRepository(CosmosRepository):
         super().__init__(get_settings().cosmos_usage_container)
 
     def latest_usage(self, user_id: str) -> dict[str, Any] | None:
+        """Get the most recent usage snapshot for a user."""
         results = self.query(
             "SELECT * FROM c WHERE c.userId = @user_id ORDER BY c.timestamp DESC",
             [{"name": "@user_id", "value": user_id}],
@@ -124,6 +126,7 @@ class UsageRepository(CosmosRepository):
         return results[0] if results else None
 
     def usage_history(self, user_id: str, period: str = "month", limit: int = 6) -> list[dict[str, Any]]:
+        """Get historical usage entries for a user, bounded by period and limit."""
         results = self.query(
             "SELECT * FROM c WHERE c.userId = @user_id AND c.periodType = @period ORDER BY c.timestamp DESC",
             [
@@ -141,6 +144,7 @@ class AuthRepository(CosmosRepository):
         super().__init__(get_settings().cosmos_auth_container)
 
     def find_user(self, identifier: str) -> dict[str, Any] | None:
+        """Find a user by email, phone number, or username."""
         identifier = identifier.strip().lower()
         if not identifier:
             return None

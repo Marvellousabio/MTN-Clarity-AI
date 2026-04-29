@@ -37,6 +37,7 @@ class UserMemoryPlugin:
     def save_user_profile(self, session_id: str, name: str, current_plan: str = "",
                           monthly_data_gb: float = 0.0, monthly_call_minutes: int = 0,
                           budget_naira: float = 0.0, segment: str = "individual") -> str:
+        """Save or update a user profile in the session store."""
         with self._lock:
             profile = self._store.get(session_id) or UserProfile(session_id=session_id)
             profile.name = name
@@ -50,11 +51,13 @@ class UserMemoryPlugin:
         return f"Profile saved for {name}."
 
     def get_user_profile(self, session_id: str) -> Optional[dict]:
+        """Retrieve a user profile by session ID."""
         with self._lock:
             p = self._store.get(session_id)
             return None if p is None else p.__dict__.copy()
 
     def add_conversation_note(self, session_id: str, note: str) -> str:
+        """Add a timestamped note to the conversation history (max 10)."""
         with self._lock:
             if session_id not in self._store:
                 self._store[session_id] = UserProfile(session_id=session_id)
@@ -65,11 +68,13 @@ class UserMemoryPlugin:
         return "Note added."
 
     def get_conversation_history(self, session_id: str) -> List[str]:
+        """Retrieve the conversation history for a session."""
         with self._lock:
             p = self._store.get(session_id)
             return p.conversation_history.copy() if p and p.conversation_history else []
 
     def update_plan_interest(self, session_id: str, plan_name: str) -> str:
+        """Record user interest in a plan."""
         with self._lock:
             p = self._store.get(session_id)
             if not p:

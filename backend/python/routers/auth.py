@@ -18,14 +18,14 @@ auth_service = AuthService()
 
 
 class LoginIn(BaseModel):
-    """Login payload using email, phone number, or username."""
+    """Login request with identifier and password."""
 
     identifier: str = Field(min_length=1)
     password: str = Field(min_length=1)
 
 
 class RegisterIn(BaseModel):
-    """Registration payload for a new MTN customer account."""
+    """User registration request."""
 
     phoneNumber: str = Field(min_length=8)
     password: str = Field(min_length=8)
@@ -40,7 +40,7 @@ class RefreshIn(BaseModel):
 
 
 class TokenOut(BaseModel):
-    """JWT pair plus the public user profile."""
+    """Authentication response with tokens and user profile."""
 
     accessToken: str
     refreshToken: str

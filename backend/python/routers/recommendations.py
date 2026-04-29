@@ -19,7 +19,7 @@ recommendation_service = RecommendationService()
 
 
 class SavingsIn(BaseModel):
-    """Savings calculation payload."""
+    """Savings calculation request."""
 
     currentPlanId: str = Field(min_length=1)
     targetPlanId: str = Field(min_length=1)
