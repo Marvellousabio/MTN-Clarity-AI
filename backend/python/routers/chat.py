@@ -1,171 +1,162 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
+"""Chat and session profile routes."""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
+from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel, Field
 
 try:
-    from ..plugins.plan import PlanPlugin
-    from ..plugins.recommendation import RecommendationPlugin
-    from ..plugins.user_memory import UserMemoryPlugin
-except Exception:
-    from backend.python.plugins.plan import PlanPlugin
-    from backend.python.plugins.recommendation import RecommendationPlugin
-    from backend.python.plugins.user_memory import UserMemoryPlugin
+    from ..services.chat_service import ChatService
+    from ..services.recommendations_service import RecommendationService
+    from ..services.repositories import ProfileRepository
+except Exception:  # pragma: no cover - local execution fallback
+    from services.chat_service import ChatService
+    from services.recommendations_service import RecommendationService
+    from services.repositories import ProfileRepository
 
 router = APIRouter()
-
-# initialize plugins
-plan_plugin = PlanPlugin()
-recommendation_plugin = RecommendationPlugin()
-user_memory = UserMemoryPlugin()
+logger = logging.getLogger(__name__)
+chat_service = ChatService()
+recommendation_service = RecommendationService()
+profile_repository = ProfileRepository()
 
 
 class RecentMessage(BaseModel):
+    """One recent chat turn."""
+
     role: str
     text: str
     timestamp: datetime
 
 
 class ChatContext(BaseModel):
-    userProfile: dict
-    recentMessages: Optional[List[RecentMessage]] = None
+    """Optional context provided by the client."""
+
+    userProfile: dict[str, Any]
+    recentMessages: list[RecentMessage] | None = None
 
 
 class ChatIn(BaseModel):
-    message: str
+    """Chat request payload."""
+
+    message: str = Field(min_length=1)
     language: str = "EN"
-    context: Optional[ChatContext] = None
+    context: ChatContext | None = None
 
 
 class ChatOut(BaseModel):
+    """Chat response payload."""
+
     id: str
     role: str
     text: str
     timestamp: datetime
-    suggestions: Optional[List[str]] = None
-    actions: Optional[List[dict]] = None
+    suggestions: list[str] | None = None
+    actions: list[dict[str, Any]] | None = None
 
 
-@router.post("/message", response_model=ChatOut)
-def send_message(req: ChatIn):
-    now = datetime.utcnow()
-    msg = req.message.strip()
-
-    # Try to load session/profile from context
-    session_id = ""
-    if req.context and isinstance(req.context.userProfile, dict):
-        session_id = req.context.userProfile.get("session_id") or req.context.userProfile.get("id") or ""
-
-    profile = user_memory.get_user_profile(session_id) if session_id else None
-
-    # Intent: recommendation
-    lower = msg.lower()
-    if any(k in lower for k in ("recommend", "best plan", "which plan", "suggest")):
-        # Check for required fields: current plan, monthly data, budget
-        if profile and profile.get("monthly_data_gb") and profile.get("budget_naira"):
-            rec = recommendation_plugin.recommend_plan(
-                monthly_data_gb=profile.get("monthly_data_gb", 0),
-                monthly_call_minutes=profile.get("monthly_call_minutes", 0),
-                monthly_budget_naira=profile.get("budget_naira", 0),
-                user_segment=profile.get("segment", "individual"),
-            )
-            top = rec.get("top_recommendations", [])
-            if top:
-                first = top[0]
-                text = f"I recommend {first['plan_name']} — ₦{first['monthly_price']}/month for {first['data_gb']}GB. Dial {first['activation_code']} to activate."
-                actions = [{"type": "recommendation", "plan_id": first["plan_id"]}]
-                return ChatOut(id="msg-1", role="ai", text=text, timestamp=now, suggestions=["Compare plans", "Save this plan"], actions=actions)
-        # not enough info
-        return ChatOut(id="msg-1", role="ai", text="I can recommend a plan — can you tell me (1) your current plan, (2) monthly data used (GB) and (3) your monthly budget in Naira?", timestamp=now, suggestions=["My current plan is...", "I use 8GB/month", "My budget is ₦3500"])
-
-    # Intent: plan details
-    if any(k in lower for k in ("tell me about", "plan details", "what does", "what is")):
-        # try to extract a plan id word
-        # naive approach: check each known plan name in message
-        for p in plan_plugin._plans:
-            if p.name.lower() in lower or p.id.lower() in lower:
-                details = plan_plugin.get_plan_details(p.name)
-                text = f"{p.name}: {p.summary} Price: ₦{int(p.monthly_price)}/month, Data: {p.data_gb}GB, Calls: {p.call_minutes} mins. Dial {p.activation_code} to activate."
-                return ChatOut(id="msg-1", role="ai", text=text, timestamp=now, suggestions=["Compare with another plan", "Explain in pidgin"], actions=[{"type": "details", "plan_id": p.id}])
-
-    # Intent: activation code request
-    if "activation" in lower or "activate" in lower or "dial" in lower:
-        for p in plan_plugin._plans:
-            if p.name.lower() in lower or p.id.lower() in lower:
-                code = plan_plugin.get_activation_code(p.name)
-                return ChatOut(id="msg-1", role="ai", text=code or "Not found", timestamp=now, suggestions=["Thanks"], actions=[])
-
-    # fallback echo
-    return ChatOut(id="msg-1", role="ai", text=f"Received: {req.message}", timestamp=now, suggestions=["Tell me about savings", "How do I switch plans"], actions=[])
-
-
-# ----- Profile endpoints -----
 class SaveProfileIn(BaseModel):
-    session_id: str
-    name: str
-    current_plan: Optional[str] = ""
-    monthly_data_gb: Optional[float] = 0.0
-    monthly_call_minutes: Optional[int] = 0
-    budget_naira: Optional[float] = 0.0
-    segment: Optional[str] = "individual"
+    """Persistable profile payload for chat sessions."""
+
+    session_id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    current_plan: str = ""
+    monthly_data_gb: float = 0.0
+    monthly_call_minutes: int = 0
+    budget_naira: float = 0.0
+    segment: str = "individual"
 
 
-@router.post("/profile/save")
-def save_profile(req: SaveProfileIn):
-    msg = user_memory.save_user_profile(
-        req.session_id,
-        req.name,
-        current_plan=req.current_plan or "",
-        monthly_data_gb=req.monthly_data_gb or 0.0,
-        monthly_call_minutes=req.monthly_call_minutes or 0,
-        budget_naira=req.budget_naira or 0.0,
-        segment=req.segment or "individual",
-    )
-    return {"message": msg}
-
-
-@router.get("/profile/{session_id}")
-def get_profile(session_id: str):
-    p = user_memory.get_user_profile(session_id)
-    if not p:
-        return {"error": "NO_PROFILE_FOUND"}
-    return p
-
-
-# ----- Recommendation endpoints -----
 class RecommendIn(BaseModel):
+    """Recommendation input for direct usage calls."""
+
     monthly_data_gb: float
     monthly_call_minutes: int
     monthly_budget_naira: float
-    user_segment: Optional[str] = "individual"
-    number_of_lines: Optional[int] = 1
-    usage_pattern: Optional[str] = "work"
-
-
-@router.post("/recommend")
-def recommend(req: RecommendIn):
-    res = recommendation_plugin.recommend_plan(
-        monthly_data_gb=req.monthly_data_gb,
-        monthly_call_minutes=req.monthly_call_minutes,
-        monthly_budget_naira=req.monthly_budget_naira,
-        user_segment=req.user_segment or "individual",
-        number_of_lines=req.number_of_lines or 1,
-        usage_pattern=req.usage_pattern or "work",
-    )
-    return res
+    user_segment: str = "individual"
+    number_of_lines: int = 1
+    usage_pattern: str = "work"
 
 
 class AnalyzeIn(BaseModel):
+    """Overspend analysis payload."""
+
     current_plan_name: str
     actual_data_used_gb: float
     actual_call_minutes_used: int
 
 
+@router.post("/message", response_model=ChatOut)
+def send_message(req: ChatIn) -> ChatOut:
+    """Send a user message to the assistant and return a generated reply."""
+
+    try:
+        response = chat_service.reply(req.message, req.language, req.context.model_dump() if req.context else None)
+        return ChatOut(**response)
+    except Exception as exc:
+        logger.exception("Chat completion failed")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Chat service is unavailable.") from exc
+
+
+@router.post("/profile/save")
+def save_profile(req: SaveProfileIn) -> dict[str, str]:
+    """Save or update a session-scoped user profile."""
+
+    document = {
+        "id": req.session_id,
+        "sessionId": req.session_id,
+        "name": req.name,
+        "currentPlanId": req.current_plan,
+        "monthlyDataGB": req.monthly_data_gb,
+        "monthlyCallMinutes": req.monthly_call_minutes,
+        "budgetNaira": req.budget_naira,
+        "segment": req.segment,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+    }
+    profile_repository.save_profile(document)
+    return {"message": f"Profile saved for {req.name}."}
+
+
+@router.get("/profile/{session_id}")
+def get_profile(session_id: str):
+    """Retrieve a stored session profile."""
+
+    profile = profile_repository.get_profile(session_id)
+    if not profile:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NO_PROFILE_FOUND")
+    return profile
+
+
+@router.post("/recommend")
+def recommend(req: RecommendIn):
+    """Return recommendations from the shared service layer."""
+
+    return recommendation_service.recommend_plan(
+        monthly_data_gb=req.monthly_data_gb,
+        monthly_call_minutes=req.monthly_call_minutes,
+        monthly_budget_naira=req.monthly_budget_naira,
+        user_segment=req.user_segment,
+        number_of_lines=req.number_of_lines,
+        usage_pattern=req.usage_pattern,
+    )
+
+
 @router.post("/analyze_overspend")
 def analyze_overspend(req: AnalyzeIn):
-    res = recommendation_plugin.analyze_overspend(
-        req.current_plan_name,
-        req.actual_data_used_gb,
-        req.actual_call_minutes_used,
-    )
-    return res
+    """Return a structured overspend analysis."""
+
+    plan = recommendation_service.plan_service.get_plan(req.current_plan_name)
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
+    return {
+        "current_plan": plan,
+        "analysis": {
+            "data_utilization_percent": round((req.actual_data_used_gb / max(float(plan.get("dataGB", 0)), 0.01)) * 100, 1),
+            "call_utilization_percent": round((req.actual_call_minutes_used / max(float(plan.get("callMinutes", 0)), 0.01)) * 100, 1),
+        },
+    }

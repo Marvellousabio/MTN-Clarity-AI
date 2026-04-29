@@ -1,11 +1,21 @@
+"""Legacy in-memory user memory helper.
+
+This module is retained for compatibility only. Production routes use Cosmos DB
+for persisted profile state.
+"""
+
+from __future__ import annotations
+
 import threading
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 from datetime import datetime
+from typing import Dict, List, Optional
 
 
 @dataclass
 class UserProfile:
+    """Small in-memory profile used only by older integrations."""
+
     session_id: str = ""
     name: str = ""
     current_plan: str = ""
@@ -19,6 +29,8 @@ class UserProfile:
 
 
 class UserMemoryPlugin:
+    """Compatibility-only in-memory session store."""
+
     _store: Dict[str, UserProfile] = {}
     _lock = threading.Lock()
 
@@ -48,7 +60,6 @@ class UserMemoryPlugin:
                 self._store[session_id] = UserProfile(session_id=session_id)
             entry = f"[{datetime.utcnow():%H:%M}] {note}"
             self._store[session_id].conversation_history.append(entry)
-            # keep only last 10
             if len(self._store[session_id].conversation_history) > 10:
                 self._store[session_id].conversation_history.pop(0)
         return "Note added."

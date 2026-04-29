@@ -1,94 +1,38 @@
-import json
-import logging
-from pathlib import Path
-from typing import List, Optional
+"""Compatibility wrapper for plan-related behavior.
 
-try:
-    from ..models import MtnPlan
-except Exception:  # allow running module directly in tests
-    from models import MtnPlan
+The production routers use the service layer directly. This wrapper exists so
+older imports keep working while still sourcing data from the live Azure-backed
+services.
+"""
 
-logger = logging.getLogger("plan_plugin")
+from __future__ import annotations
+
+from typing import Any
+
+from ..services.plans_service import PlanService
 
 
 class PlanPlugin:
-    def __init__(self, catalog_path: Optional[Path] = None):
-        # Locate plan-catalog.json if no explicit path provided
-        if catalog_path is None:
-            base = Path(__file__).resolve()
-            candidates = [
-                base.parents[3] / "frontend" / "plan-catalog.json",
-                base.parents[1] / "data" / "plan-catalog.json",
-                base.parents[1] / "Data" / "plan-catalog.json",
-            ]
-            catalog_path = next((c for c in candidates if c.exists()), candidates[1])
+    """Backward-compatible facade over :class:`PlanService`."""
 
-        self._catalog_path = Path(catalog_path)
-        if not self._catalog_path.exists():
-            raise FileNotFoundError(f"Plan catalog not found at {self._catalog_path}")
+    def __init__(self) -> None:
+        self._service = PlanService()
 
-        raw = self._catalog_path.read_text(encoding="utf-8")
-        self._plans: List[MtnPlan] = [MtnPlan(**p) for p in json.loads(raw)]
-        logger.info("Loaded %d plans from %s", len(self._plans), self._catalog_path)
+    def find_plan(self, name: str) -> dict[str, Any] | None:
+        return self._service.get_plan(name)
 
-    def find_plan(self, name: str) -> Optional[MtnPlan]:
-        name = name.strip()
-        if not name:
-            return None
-        for p in self._plans:
-            if name.lower() in p.name.lower() or name.lower() == p.id.lower():
-                return p
-        return None
+    def get_plan_details(self, plan_name: str) -> dict[str, Any] | None:
+        return self._service.get_plan(plan_name)
 
-    def get_plan_details(self, plan_name: str) -> Optional[dict]:
-        plan = self.find_plan(plan_name)
-        return plan.model_dump(by_alias=True) if plan else None
+    def list_plans_by_category(self, category: str = "all") -> list[dict[str, Any]]:
+        return self._service.list_plans(category)
 
-    def list_plans_by_category(self, category: str = "all") -> List[dict]:
-        c = category.lower()
-        if c == "all":
-            filtered = self._plans
-        else:
-            filtered = [p for p in self._plans if p.category.lower() == c]
-
-        return [
-            {
-                "id": p.id,
-                "name": p.name,
-                "category": p.category,
-                "monthlyCost": p.monthly_price,
-                "dataGB": p.data_gb,
-                "summary": p.summary,
-                "activationCode": p.activation_code,
-            }
-            for p in filtered
-        ]
-
-    def compare_plans(self, plan_names_csv: str) -> List[dict]:
+    def compare_plans(self, plan_names_csv: str) -> list[dict[str, Any]]:
         names = [n.strip() for n in plan_names_csv.split(",") if n.strip()]
-        matched = [p for p in self._plans if any(n.lower() in p.name.lower() or n.lower() == p.id.lower() for n in names)]
-        return [p.model_dump(by_alias=True) for p in matched]
+        return self._service.compare_plans(names)
 
-    def get_activation_code(self, plan_name: str) -> Optional[str]:
-        plan = self.find_plan(plan_name)
-        if not plan:
-            return None
-        return f"To activate {plan.name}, dial {plan.activation_code} on your MTN line."
+    def get_activation_code(self, plan_name: str) -> str | None:
+        return self._service.activation_message(plan_name)
 
-    def explain_plan_in_pidgin(self, plan_name: str) -> Optional[str]:
-        plan = self.find_plan(plan_name)
-        if not plan:
-            return None
-        # Return a compact structured string; presentation layer/LLM can rephrase
-        return (
-            f"PLAN_DATA_FOR_PIDGIN_EXPLANATION:\n"
-            f"Name: {plan.name}\n"
-            f"Price: ₦{int(plan.monthly_price)} per month\n"
-            f"Data: {plan.data_gb}GB\n"
-            f"Calls: {plan.call_minutes} minutes\n"
-            f"SMS: {plan.sms_count}\n"
-            f"Best for: {plan.best_for}\n"
-            f"Key features: {'; '.join(plan.features)}\n"
-            f"Limitations: {plan.limitations}\n"
-            f"Activation: {plan.activation_code}\n"
-        )
+    def explain_plan_in_pidgin(self, plan_name: str) -> str | None:
+        return self._service.pidgin_explanation(plan_name)

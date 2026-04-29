@@ -1,19 +1,30 @@
-from pydantic import BaseModel, Field, ConfigDict
+"""Shared Pydantic models for compatibility and typed boundaries."""
+
+from __future__ import annotations
+
 from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ChatMessage(BaseModel):
+    """One chat turn in a session transcript."""
+
     role: str = "user"  # "user" | "assistant"
     content: str = ""
 
 
 class ChatRequest(BaseModel):
+    """Request body for the legacy chat contract."""
+
     session_id: str = Field(default_factory=lambda: "")
     message: str = ""
     history: List[ChatMessage] = Field(default_factory=list)
 
 
 class ChatResponse(BaseModel):
+    """Legacy chat response envelope."""
+
     session_id: str = ""
     message: str = ""
     success: bool = True
@@ -21,6 +32,8 @@ class ChatResponse(BaseModel):
 
 
 class MtnPlan(BaseModel):
+    """Canonical MTN plan model used by compatibility layers."""
+
     model_config = ConfigDict(populate_by_name=True)
 
     id: str = ""

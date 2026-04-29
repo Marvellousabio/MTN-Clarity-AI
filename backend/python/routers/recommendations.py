@@ -1,40 +1,58 @@
-from datetime import datetime, timedelta
+"""Recommendation routes backed by live catalog and usage data."""
 
-from fastapi import APIRouter
-from pydantic import BaseModel
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel, Field
 
 try:
-    from ..plugins.recommendation import RecommendationPlugin
-except Exception:
-    from backend.python.plugins.recommendation import RecommendationPlugin
+    from ..services.recommendations_service import RecommendationService
+except Exception:  # pragma: no cover - local execution fallback
+    from services.recommendations_service import RecommendationService
 
 router = APIRouter()
-recommendation_plugin = RecommendationPlugin()
+logger = logging.getLogger(__name__)
+recommendation_service = RecommendationService()
+
+
+class SavingsIn(BaseModel):
+    """Savings calculation payload."""
+
+    currentPlanId: str = Field(min_length=1)
+    targetPlanId: str = Field(min_length=1)
 
 
 @router.get("/recommendations")
 def get_recommendations(
-    monthlyDataGB: float = 6.0,
-    monthlyCallMinutes: int = 120,
-    monthlyBudget: float = 3000.0,
-    userSegment: str = "individual",
-    currentPlanId: str | None = None,
+    monthlyDataGB: float = Query(default=6.0, ge=0),
+    monthlyCallMinutes: int = Query(default=120, ge=0),
+    monthlyBudget: float = Query(default=3000.0, ge=0),
+    userSegment: str = Query(default="individual"),
+    currentPlanId: str | None = Query(default=None),
 ):
-    current_plan = recommendation_plugin.get_plan(currentPlanId or "") if currentPlanId else None
-    current_cost = current_plan.monthly_price if current_plan else monthlyBudget
+    """Return ranked recommendations and savings estimates."""
 
-    rec = recommendation_plugin.recommend_plan(
+    profile = recommendation_service.recommend_plan(
         monthly_data_gb=monthlyDataGB,
         monthly_call_minutes=monthlyCallMinutes,
         monthly_budget_naira=monthlyBudget,
         user_segment=userSegment,
     )
 
-    out = []
-    for item in rec.get("top_recommendations", []):
+    current_cost = monthlyBudget
+    if currentPlanId:
+        current_plan = recommendation_service.plan_service.get_plan(currentPlanId)
+        if current_plan:
+            current_cost = float(current_plan.get("monthlyPrice", monthlyBudget))
+
+    results = []
+    for item in profile.get("top_recommendations", []):
         estimated_cost = float(item.get("monthly_price", 0))
         estimated_savings = round(max(current_cost - estimated_cost, 0), 2)
-        out.append(
+        results.append(
             {
                 "planId": item.get("plan_id"),
                 "matchScore": item.get("total_score", 0),
@@ -53,38 +71,15 @@ def get_recommendations(
             }
         )
 
-    return out
-
-
-class SavingsIn(BaseModel):
-    currentPlanId: str
-    targetPlanId: str
+    return results
 
 
 @router.post("/savings/calculate")
 def calculate_savings(payload: SavingsIn):
-    current = recommendation_plugin.get_plan(payload.currentPlanId)
-    target = recommendation_plugin.get_plan(payload.targetPlanId)
+    """Calculate savings for switching plans."""
 
-    if not current or not target:
-        return {
-            "monthlySavings": 0,
-            "annualSavings": 0,
-            "dataChange": 0,
-            "callChange": 0,
-            "smsChange": 0,
-            "breakEvenDate": datetime.utcnow().isoformat() + "Z",
-        }
-
-    monthly = round(current.monthly_price - target.monthly_price, 2)
-    annual = round(monthly * 12, 2)
-    break_even = datetime.utcnow() + timedelta(days=30)
-
-    return {
-        "monthlySavings": monthly,
-        "annualSavings": annual,
-        "dataChange": round(target.data_gb - current.data_gb, 2),
-        "callChange": int(target.call_minutes - current.call_minutes),
-        "smsChange": int(target.sms_count - current.sms_count),
-        "breakEvenDate": break_even.isoformat() + "Z",
-    }
+    try:
+        return recommendation_service.calculate_savings(payload.currentPlanId, payload.targetPlanId)
+    except Exception as exc:  # pragma: no cover - defensive HTTP boundary
+        logger.exception("Savings calculation failed")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to calculate savings") from exc

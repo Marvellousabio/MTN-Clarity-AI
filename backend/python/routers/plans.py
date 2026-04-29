@@ -1,51 +1,68 @@
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
-from typing import List, Optional
+"""Plan catalog routes backed by Cosmos DB."""
+
+from __future__ import annotations
+
+import logging
+
+from fastapi import APIRouter, HTTPException, Query, status
+from pydantic import BaseModel, Field
 
 try:
-    from ..plugins.plan import PlanPlugin
-except Exception:
-    from backend.python.plugins.plan import PlanPlugin
+    from ..services.plans_service import PlanService
+except Exception:  # pragma: no cover - local execution fallback
+    from services.plans_service import PlanService
 
 router = APIRouter()
-
-# Initialize plugin (loads plan-catalog.json from frontend or Data)
-plan_plugin = PlanPlugin()
+logger = logging.getLogger(__name__)
+plan_service = PlanService()
 
 
 class CompareIn(BaseModel):
-    planIds: List[str]
+    """Plan comparison payload."""
+
+    planIds: list[str] = Field(min_length=1)
 
 
 @router.get("/")
-def list_plans(category: str = Query("all", description="individual|business|youth|all")):
-    return plan_plugin.list_plans_by_category(category)
+def list_plans(category: str = Query("all", description="individual|business|youth|all")) -> list[dict]:
+    """Return the live catalog of plans."""
+
+    return plan_service.list_plans(category)
 
 
 @router.get("/details/{plan_name}")
-def get_plan(plan_name: str):
-    details = plan_plugin.get_plan_details(plan_name)
+def get_plan(plan_name: str) -> dict:
+    """Return a single plan document."""
+
+    details = plan_service.get_plan(plan_name)
     if not details:
-        raise HTTPException(status_code=404, detail="Plan not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
     return details
 
 
 @router.post("/compare")
-def compare(req: CompareIn):
-    csv = ",".join(req.planIds)
-    result = plan_plugin.compare_plans(csv)
+def compare(req: CompareIn) -> dict:
+    """Compare multiple plans side by side."""
+
+    result = plan_service.compare_plans(req.planIds)
     if not result:
-        raise HTTPException(status_code=404, detail="No matching plans for comparison")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No matching plans for comparison")
 
     features = ["monthlyCost", "dataGB", "callMinutes", "smsCount", "validityDays"]
     plans_out = [
         {
-            "planId": p.get("id"),
-            "values": [p.get("monthlyPrice"), p.get("dataGB"), p.get("callMinutes"), p.get("smsCount"), p.get("validityDays")],
+            "planId": plan.get("id"),
+            "values": [
+                plan.get("monthlyPrice"),
+                plan.get("dataGB"),
+                plan.get("callMinutes"),
+                plan.get("smsCount"),
+                plan.get("validityDays"),
+            ],
         }
-        for p in result
+        for plan in result
     ]
-    recommended = max(result, key=lambda p: (p.get("dataGB", 0), -p.get("monthlyPrice", 0)))
+    recommended = max(result, key=lambda plan: (float(plan.get("dataGB", 0)), -float(plan.get("monthlyPrice", 0))))
 
     return {
         "comparison": {
@@ -62,16 +79,20 @@ def compare(req: CompareIn):
 
 
 @router.get("/activation/{plan_name}")
-def activation(plan_name: str):
-    code = plan_plugin.get_activation_code(plan_name)
+def activation(plan_name: str) -> dict[str, str]:
+    """Return the activation message for a plan."""
+
+    code = plan_service.activation_message(plan_name)
     if not code:
-        raise HTTPException(status_code=404, detail="Plan not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
     return {"activation": code}
 
 
 @router.get("/explain/pidgin/{plan_name}")
-def explain_pidgin(plan_name: str):
-    text = plan_plugin.explain_plan_in_pidgin(plan_name)
+def explain_pidgin(plan_name: str) -> dict[str, str]:
+    """Return a pidgin-friendly plan explanation."""
+
+    text = plan_service.pidgin_explanation(plan_name)
     if not text:
-        raise HTTPException(status_code=404, detail="Plan not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
     return {"pidgin_explanation": text}

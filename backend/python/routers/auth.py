@@ -1,99 +1,103 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
+"""Authentication routes"""
+
+from __future__ import annotations
+
+import logging
+
+from fastapi import APIRouter, Header, HTTPException, status
+from pydantic import BaseModel, Field
+
+try:
+    from ..services.auth_service import AuthService
+except Exception:  # pragma: no cover - local execution fallback
+    from services.auth_service import AuthService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+auth_service = AuthService()
 
 
 class LoginIn(BaseModel):
-    username: str
-    password: str
+    """Login payload using email, phone number, or username."""
+
+    identifier: str = Field(min_length=1)
+    password: str = Field(min_length=1)
+
+
+class RegisterIn(BaseModel):
+    """Registration payload for a new MTN customer account."""
+
+    phoneNumber: str = Field(min_length=8)
+    password: str = Field(min_length=8)
+    name: str = Field(min_length=1)
+    email: str | None = None
+
+
+class RefreshIn(BaseModel):
+    """Token refresh request."""
+
+    refreshToken: str = Field(min_length=1)
 
 
 class TokenOut(BaseModel):
+    """JWT pair plus the public user profile."""
+
     accessToken: str
     refreshToken: str
     user: dict
 
 
 @router.post("/login", response_model=TokenOut)
-def login(payload: LoginIn):
-    # stub: accept any credentials and return a fake token
-    user = {
-        "id": "user-1",
-        "name": payload.username,
-        "phoneNumber": "08100000000",
-        "email": "user@example.com",
-        "currentPlanId": "plan-1",
-        "monthlySpend": 2500,
-        "dataBurnRate": "Medium",
-        "heavySocialUsage": True,
-        "preferredLanguage": "EN",
-    }
-    return TokenOut(accessToken="fake-jwt-token", refreshToken="fake-refresh", user=user)
+def login(payload: LoginIn) -> TokenOut:
+    """Authenticate a user and return fresh JWTs."""
 
-
-class RegisterIn(BaseModel):
-    phoneNumber: str
-    password: str
-    name: str
+    try:
+        return TokenOut(**auth_service.login(payload.identifier, payload.password))
+    except ValueError as exc:
+        logger.warning("Login failed for identifier=%s: %s", payload.identifier, exc)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
 
 @router.post("/register", response_model=TokenOut)
-def register(payload: RegisterIn):
-    # stub: accept any input and return a fake token
-    user = {
-        "id": "user-new",
-        "name": payload.name,
-        "phoneNumber": payload.phoneNumber,
-        "email": f"{payload.phoneNumber}@mtn.com",
-        "currentPlanId": "plan-1",
-        "monthlySpend": 0,
-        "dataBurnRate": "Low",
-        "heavySocialUsage": False,
-        "preferredLanguage": "EN",
-    }
-    return TokenOut(accessToken="fake-jwt-token", refreshToken="fake-refresh", user=user)
+def register(payload: RegisterIn) -> TokenOut:
+    """Register a user account."""
 
-
-class RefreshIn(BaseModel):
-    refreshToken: str
+    try:
+        return TokenOut(**auth_service.register(payload.name, payload.phoneNumber, payload.password, payload.email))
+    except ValueError as exc:
+        logger.warning("Registration failed for phoneNumber=%s: %s", payload.phoneNumber, exc)
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.post("/refresh", response_model=TokenOut)
-def refresh(payload: RefreshIn):
-    # stub: accept any refresh token and return a new access token
-    user = {
-        "id": "user-1",
-        "name": "Demo User",
-        "phoneNumber": "08100000000",
-        "email": "user@example.com",
-        "currentPlanId": "plan-1",
-        "monthlySpend": 2500,
-        "dataBurnRate": "Medium",
-        "heavySocialUsage": True,
-        "preferredLanguage": "EN",
-    }
-    return TokenOut(accessToken="fake-jwt-token-refreshed", refreshToken="fake-refresh", user=user)
+def refresh(payload: RefreshIn) -> TokenOut:
+    """Rotate tokens using a valid refresh token."""
+
+    try:
+        return TokenOut(**auth_service.refresh(payload.refreshToken))
+    except ValueError as exc:
+        logger.warning("Token refresh failed: %s", exc)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
 
-@router.get("/me", response_model=TokenOut)
-def get_me():
-    # stub: return current user (in production, extract from JWT)
-    user = {
-        "id": "user-1",
-        "name": "Demo User",
-        "phoneNumber": "08100000000",
-        "email": "user@example.com",
-        "currentPlanId": "plan-1",
-        "monthlySpend": 2500,
-        "dataBurnRate": "Medium",
-        "heavySocialUsage": True,
-        "preferredLanguage": "EN",
-    }
-    return TokenOut(accessToken="fake-jwt-token", refreshToken="fake-refresh", user=user)
+@router.get("/me", response_model=dict)
+def get_me(authorization: str | None = Header(default=None)) -> dict:
+    """Return the current authenticated profile."""
+
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token required.")
+    token = authorization.removeprefix("Bearer ").strip()
+    try:
+        return auth_service.me(token)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
 
 @router.post("/logout")
-def logout():
-    # stub: just return success
+def logout(authorization: str | None = Header(default=None)) -> dict[str, str]:
+    """Invalidate the active refresh token state."""
+
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token required.")
+    auth_service.logout(authorization.removeprefix("Bearer ").strip())
     return {"message": "Logged out successfully"}
