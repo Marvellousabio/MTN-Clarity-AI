@@ -128,9 +128,11 @@ CLARITY_JWT_SECRET=<generate-a-strong-secret>
 - `profiles` - User profile and preference data
 - `usage` - Usage analytics snapshots
 - `auth_users` - Authentication accounts and tokens
-- `chat_sessions` - Chat conversation history
+- `chat_sessions` - Chat conversation history and Semantic Kernel memory
 
 **TTL Policy:** 30 days on session/chat data for automatic cleanup
+
+**New in v2.0:** The `chat_sessions` container now supports Semantic Kernel integration. When the backend's SK orchestration is enabled, conversation history is persisted here for multi-turn context and memory recall. Each session is identified by a `session_id` and partitioned by its `id` field.
 
 ### OpenAI Module (`openai.bicep`)
 
@@ -200,6 +202,16 @@ When traffic increases and you exceed free tier limits:
 3. Create alerts for cost anomalies
 
 ## Monitoring & Cost Alerts
+
+### Semantic Kernel Data Volume
+
+When SK integration is enabled (v2.0+), the `chat_sessions` container stores conversation history. Monitor this to account for storage:
+
+- **Per-session data:** ~1-2 KB per message (messages + timestamps)
+- **TTL cleanup:** Automatic after 30 days
+- **Throughput:** Typically minimal (well within free tier for typical usage)
+
+Check Cosmos DB metrics in Azure Portal → Storage → Collections → chat_sessions to verify volume.
 
 Set up cost alerts in Azure:
 

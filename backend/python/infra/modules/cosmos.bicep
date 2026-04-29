@@ -6,6 +6,7 @@ param location string
 param accountName string
 param databaseName string
 param environment string
+param throughput int = 400
 
 // Container configuration
 var containers = [
@@ -31,7 +32,7 @@ var containers = [
   }
 ]
 
-// Cosmos DB Serverless Account
+// Cosmos DB Provisioned Account
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   name: accountName
   location: location
@@ -41,7 +42,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
     module: 'cosmos'
   }
   properties: {
-    databaseAccountOfferType: 'Serverless'
+    databaseAccountOfferType: 'Standard'
     locations: [
       {
         locationName: location
@@ -53,21 +54,19 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
       maxIntervalInSeconds: 5
       maxStalenessPrefix: 100
     }
-    capabilities: [
-      {
-        name: 'EnableServerless'
-      }
-    ]
   }
 }
 
-// Database
+// Database with throughput
 resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15' = {
   parent: cosmosAccount
   name: databaseName
   properties: {
     resource: {
       id: databaseName
+    }
+    options: {
+      throughput: throughput
     }
   }
 }

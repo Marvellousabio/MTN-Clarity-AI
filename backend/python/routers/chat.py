@@ -46,6 +46,7 @@ class ChatIn(BaseModel):
     message: str = Field(min_length=1)
     language: str = "EN"
     context: ChatContext | None = None
+    session_id: str = ""  # Optional session ID for memory persistence
 
 
 class ChatOut(BaseModel):
@@ -57,6 +58,7 @@ class ChatOut(BaseModel):
     timestamp: datetime
     suggestions: list[str] | None = None
     actions: list[dict[str, Any]] | None = None
+    _sk_invoked: bool | None = None  # Track which orchestration path was used
 
 
 class SaveProfileIn(BaseModel):
@@ -92,10 +94,18 @@ class AnalyzeIn(BaseModel):
 
 @router.post("/message", response_model=ChatOut)
 def send_message(req: ChatIn) -> ChatOut:
-    """Send a user message to the assistant and return a generated reply."""
+    """Send a user message to the assistant and return a generated reply.
+    
+    Supports optional session_id for conversion history persistence and SK memory.
+    """
 
     try:
-        response = chat_service.reply(req.message, req.language, req.context.model_dump() if req.context else None)
+        response = chat_service.reply(
+            req.message,
+            req.language,
+            req.context.model_dump() if req.context else None,
+            session_id=req.session_id,
+        )
         return ChatOut(**response)
     except Exception as exc:
         logger.exception("Chat completion failed")

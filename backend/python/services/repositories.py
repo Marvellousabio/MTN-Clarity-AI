@@ -153,3 +153,53 @@ class AuthRepository(CosmosRepository):
             [{"name": "@identifier", "value": identifier}],
         )
         return results[0] if results else None
+
+
+class ChatSessionRepository(CosmosRepository):
+    """Persist conversation history and memory per session for SK recall."""
+
+    def __init__(self) -> None:
+        super().__init__(get_settings().cosmos_chat_container)
+
+    def get_session(self, session_id: str) -> dict[str, Any] | None:
+        """Retrieve a chat session by ID."""
+        return self.read(session_id)
+
+    def save_session(self, session_id: str, messages: list[dict[str, Any]], user_id: str = "") -> dict[str, Any]:
+        """Save or update a chat session with message history."""
+        session = {
+            "id": session_id,
+            "userId": user_id,
+            "messages": messages,
+            "updatedAt": self.utc_now(),
+            "createdAt": self.read(session_id).get("createdAt", self.utc_now()) if self.read(session_id) else self.utc_now(),
+        }
+        return self.upsert(session)
+
+    def add_message(self, session_id: str, role: str, text: str, user_id: str = "") -> dict[str, Any]:
+        """Append a message to an existing session."""
+        session = self.read(session_id)
+        if not session:
+            session = {
+                "id": session_id,
+                "userId": user_id,
+                "messages": [],
+                "createdAt": self.utc_now(),
+            }
+
+        session.setdefault("messages", [])
+        session["messages"].append({
+            "role": role,
+            "text": text,
+            "timestamp": self.utc_now(),
+        })
+        session["updatedAt"] = self.utc_now()
+        return self.upsert(session)
+
+    def get_recent_messages(self, session_id: str, limit: int = 10) -> list[dict[str, Any]]:
+        """Retrieve the most recent messages from a session."""
+        session = self.read(session_id)
+        if not session:
+            return []
+        messages = session.get("messages", [])
+        return messages[-limit:]

@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     azure_openai_api_version: str = "2024-10-21"
     azure_openai_deployment: str = "clarity-chat"
 
+    # Semantic Kernel configuration
+    semantic_kernel_enabled: bool = True
+    semantic_kernel_function_calling_only: bool = True  # Phase 2: enable planner via flag
+    semantic_kernel_model_id: str = "gpt-4"
+
     jwt_secret: str = Field(default="", description="JWT signing secret")
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 60

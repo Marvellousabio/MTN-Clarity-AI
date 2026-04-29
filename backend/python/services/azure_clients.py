@@ -49,6 +49,37 @@ class AzureClientFactory:
             api_version=self.settings.azure_openai_api_version,
         )
 
+    def semantic_kernel(self):
+        """Return a Semantic Kernel instance with Azure OpenAI service.
+
+        Lazy-imports SK to avoid hard dependency if not used.
+
+        Raises:
+            ValueError: if Azure OpenAI configuration is incomplete.
+            ImportError: if semantic-kernel is not installed.
+        """
+        try:
+            from semantic_kernel import Kernel
+            from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+        except ImportError as e:
+            raise ImportError("semantic-kernel package is required for SK integration") from e
+
+        if not self.settings.azure_openai_endpoint or not self.settings.azure_openai_key:
+            raise ValueError("Azure OpenAI endpoint and key must be configured.")
+
+        kernel = Kernel()
+        service_id = "clarity-ai-service"
+        kernel.add_service(
+            AzureChatCompletion(
+                service_id=service_id,
+                deployment_name=self.settings.azure_openai_deployment,
+                endpoint=self.settings.azure_openai_endpoint,
+                api_key=self.settings.azure_openai_key,
+                api_version=self.settings.azure_openai_api_version,
+            )
+        )
+        return kernel
+
 
 @lru_cache(maxsize=1)
 def get_azure_clients() -> AzureClientFactory:

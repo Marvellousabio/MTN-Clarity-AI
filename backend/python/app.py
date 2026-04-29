@@ -10,9 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 try:
     from .config import get_settings
     from .routers import auth, chat, plans, recommendations, usage, user
+    from .services.kernel_service import KernelService
 except Exception:  # pragma: no cover - local execution fallback
     from config import get_settings
     from routers import auth, chat, plans, recommendations, usage, user
+    from services.kernel_service import KernelService
 
 settings = get_settings()
 logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
@@ -39,6 +41,24 @@ app.include_router(plans.router, prefix="/api/plans", tags=["plans"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(usage.router, prefix="/api/usage", tags=["usage"])
 app.include_router(recommendations.router, prefix="/api", tags=["recommendations"])
+
+
+@app.on_event("startup")
+def startup_logging():
+    """Log initialization status of SK and other components."""
+    logger.info(f"{settings.app_name} v{settings.app_version} starting up")
+    
+    if settings.semantic_kernel_enabled:
+        try:
+            kernel_service = KernelService()
+            if kernel_service.is_enabled():
+                logger.info("✓ Semantic Kernel orchestration: ENABLED (function-calling mode)")
+            else:
+                logger.warning("⚠ Semantic Kernel: failed to initialize, will use direct Azure OpenAI")
+        except Exception as e:
+            logger.warning(f"⚠ Semantic Kernel initialization error: {e}")
+    else:
+        logger.info("Semantic Kernel orchestration: DISABLED (direct Azure OpenAI mode)")
 
 
 @app.get("/healthz")
