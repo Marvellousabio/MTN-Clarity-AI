@@ -1,0 +1,33 @@
+# Git ignore for infrastructure files
+
+# Bicep outputs (sensitive data)
+*.json
+deployment-info.json
+
+# Environment-specific files
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node if using bicep CLI global
+node_modules/
+package-lock.json
+
+# Logs
+*.log
+logs/
+
+# Parameters (if you create environment-specific ones)
+parameters.*.bicepparam
+parameters.*.json
+COST_GUIDE.md
