@@ -28,15 +28,26 @@ class PlanScore:
 class RecommendationPlugin:
     def __init__(self, catalog_path: Path | None = None):
         if catalog_path is None:
-            base = Path(__file__).resolve().parents[1]
-            candidate = base / "frontend" / "plan-catalog.json"
-            if not candidate.exists():
-                candidate = base / "Data" / "plan-catalog.json"
-            catalog_path = candidate
+            base = Path(__file__).resolve()
+            candidates = [
+                base.parents[3] / "frontend" / "plan-catalog.json",
+                base.parents[1] / "data" / "plan-catalog.json",
+                base.parents[1] / "Data" / "plan-catalog.json",
+            ]
+            catalog_path = next((c for c in candidates if c.exists()), candidates[1])
 
         raw = Path(catalog_path).read_text(encoding="utf-8")
         self._plans: List[MtnPlan] = [MtnPlan(**p) for p in json.loads(raw)]
         logger.info("RecommendationPlugin loaded %d plans", len(self._plans))
+
+    def get_plan(self, plan_id_or_name: str) -> MtnPlan | None:
+        target = (plan_id_or_name or "").strip().lower()
+        if not target:
+            return None
+        for plan in self._plans:
+            if target == plan.id.lower() or target in plan.name.lower():
+                return plan
+        return None
 
     def recommend_plan(self, monthly_data_gb: float, monthly_call_minutes: int, monthly_budget_naira: float,
                        user_segment: str = "individual", number_of_lines: int = 1,
@@ -93,14 +104,14 @@ class RecommendationPlugin:
         }
 
     def analyze_overspend(self, current_plan_name: str, actual_data_used_gb: float, actual_call_minutes_used: int) -> dict:
-        current = next((p for p in self._plans if current_plan_name.lower() in p.name.lower() or current_plan_name == p.id), None)
+        current = self.get_plan(current_plan_name)
         if not current:
             return {"error": "Plan not found"}
 
         better = [p for p in self._plans if p.data_gb >= actual_data_used_gb and p.call_minutes >= actual_call_minutes_used and p.monthly_price < current.monthly_price]
         options = sorted(better, key=lambda p: p.monthly_price)[:2]
         return {
-            "current_plan": current.dict(),
+            "current_plan": current.model_dump(by_alias=True),
             "alternatives": [
                 {
                     "name": p.name,

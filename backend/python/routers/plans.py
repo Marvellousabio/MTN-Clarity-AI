@@ -14,7 +14,7 @@ plan_plugin = PlanPlugin()
 
 
 class CompareIn(BaseModel):
-    planNames: List[str]
+    planIds: List[str]
 
 
 @router.get("/")
@@ -32,11 +32,33 @@ def get_plan(plan_name: str):
 
 @router.post("/compare")
 def compare(req: CompareIn):
-    csv = ",".join(req.planNames)
+    csv = ",".join(req.planIds)
     result = plan_plugin.compare_plans(csv)
     if not result:
         raise HTTPException(status_code=404, detail="No matching plans for comparison")
-    return {"comparison": {"plans": result}}
+
+    features = ["monthlyCost", "dataGB", "callMinutes", "smsCount", "validityDays"]
+    plans_out = [
+        {
+            "planId": p.get("id"),
+            "values": [p.get("monthlyPrice"), p.get("dataGB"), p.get("callMinutes"), p.get("smsCount"), p.get("validityDays")],
+        }
+        for p in result
+    ]
+    recommended = max(result, key=lambda p: (p.get("dataGB", 0), -p.get("monthlyPrice", 0)))
+
+    return {
+        "comparison": {
+            "features": features,
+            "plans": plans_out,
+            "highlightedDifferences": ["Price", "Data allowance", "Call minutes"],
+            "recommendation": {
+                "recommendedPlanId": recommended.get("id"),
+                "reason": "Best balance of data value and included calls among selected plans.",
+                "savings": 0,
+            },
+        }
+    }
 
 
 @router.get("/activation/{plan_name}")

@@ -1,1 +1,1 @@
-from . import auth, user, plans, chat, usage
+from . import auth, user, plans, chat, usage, recommendations

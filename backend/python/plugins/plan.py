@@ -13,13 +13,15 @@ logger = logging.getLogger("plan_plugin")
 
 class PlanPlugin:
     def __init__(self, catalog_path: Optional[Path] = None):
-        # Locate frontend plan-catalog.json if no explicit path provided
+        # Locate plan-catalog.json if no explicit path provided
         if catalog_path is None:
-            base = Path(__file__).resolve().parents[1]
-            candidate = base / "frontend" / "plan-catalog.json"
-            if not candidate.exists():
-                candidate = base / "Data" / "plan-catalog.json"
-            catalog_path = candidate
+            base = Path(__file__).resolve()
+            candidates = [
+                base.parents[3] / "frontend" / "plan-catalog.json",
+                base.parents[1] / "data" / "plan-catalog.json",
+                base.parents[1] / "Data" / "plan-catalog.json",
+            ]
+            catalog_path = next((c for c in candidates if c.exists()), candidates[1])
 
         self._catalog_path = Path(catalog_path)
         if not self._catalog_path.exists():
@@ -40,7 +42,7 @@ class PlanPlugin:
 
     def get_plan_details(self, plan_name: str) -> Optional[dict]:
         plan = self.find_plan(plan_name)
-        return plan.dict() if plan else None
+        return plan.model_dump(by_alias=True) if plan else None
 
     def list_plans_by_category(self, category: str = "all") -> List[dict]:
         c = category.lower()
@@ -54,10 +56,10 @@ class PlanPlugin:
                 "id": p.id,
                 "name": p.name,
                 "category": p.category,
-                "monthly_price": p.monthly_price,
-                "data_gb": p.data_gb,
+                "monthlyCost": p.monthly_price,
+                "dataGB": p.data_gb,
                 "summary": p.summary,
-                "activation_code": p.activation_code,
+                "activationCode": p.activation_code,
             }
             for p in filtered
         ]
@@ -65,7 +67,7 @@ class PlanPlugin:
     def compare_plans(self, plan_names_csv: str) -> List[dict]:
         names = [n.strip() for n in plan_names_csv.split(",") if n.strip()]
         matched = [p for p in self._plans if any(n.lower() in p.name.lower() or n.lower() == p.id.lower() for n in names)]
-        return [p.dict() for p in matched]
+        return [p.model_dump(by_alias=True) for p in matched]
 
     def get_activation_code(self, plan_name: str) -> Optional[str]:
         plan = self.find_plan(plan_name)
