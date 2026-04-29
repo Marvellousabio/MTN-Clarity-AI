@@ -1,4 +1,4 @@
-"""User profile routes backed by Cosmos DB."""
+"""User profile routes"""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Recommendation routes backed by live catalog and usage data."""
+"""Recommendation routes"""
 
 from __future__ import annotations
 
