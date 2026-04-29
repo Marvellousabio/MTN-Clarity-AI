@@ -1,69 +1,52 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Optional
 
+from ..plugins.plan_plugin import PlanPlugin
+
 router = APIRouter()
 
-
-class Plan(BaseModel):
-    id: str
-    name: str
-    category: str
-    monthlyCost: float
-    dataGB: float
-    callMinutes: int
-    smsCount: int
-    validityDays: int
-    activationCode: str
-    summary: str
-    features: List[str]
-    bestFor: Optional[str]
-    limitations: Optional[str]
-    competitors: List[str]
-    upsellTo: Optional[str]
-    matchScore: float
-
-
-PLANS = [
-    Plan(
-        id="plan-1",
-        name="Pulse Plus",
-        category="pulse",
-        monthlyCost=3000.0,
-        dataGB=10.0,
-        callMinutes=300,
-        smsCount=50,
-        validityDays=30,
-        activationCode="*123#",
-        summary="Balanced plan for social users",
-        features=["Social bundles", "Discounts"],
-        bestFor="Social apps",
-        limitations=None,
-        competitors=["Competitor A"],
-        upsellTo=None,
-        matchScore=0.8,
-    )
-]
-
-
-@router.get("/", response_model=List[Plan])
-def list_plans():
-    return PLANS
-
-
-@router.get("/{plan_id}", response_model=Plan)
-def get_plan(plan_id: str):
-    for p in PLANS:
-        if p.id == plan_id:
-            return p
-    raise HTTPException(status_code=404, detail="Plan not found")
+# Initialize plugin (loads plan-catalog.json from frontend or Data)
+plan_plugin = PlanPlugin()
 
 
 class CompareIn(BaseModel):
-    planIds: List[str]
+    planNames: List[str]
+
+
+@router.get("/")
+def list_plans(category: str = Query("all", description="individual|business|youth|all")):
+    return plan_plugin.list_plans_by_category(category)
+
+
+@router.get("/details/{plan_name}")
+def get_plan(plan_name: str):
+    details = plan_plugin.get_plan_details(plan_name)
+    if not details:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return details
 
 
 @router.post("/compare")
 def compare(req: CompareIn):
-    selected = [p for p in PLANS if p.id in req.planIds]
-    return {"comparison": {"features": ["dataGB", "monthlyCost"], "plans": [p.dict() for p in selected], "highlightedDifferences": [], "recommendation": {"recommendedPlanId": selected[0].id if selected else None, "reason": "Best match", "savings": 0}}}
+    csv = ",".join(req.planNames)
+    result = plan_plugin.compare_plans(csv)
+    if not result:
+        raise HTTPException(status_code=404, detail="No matching plans for comparison")
+    return {"comparison": {"plans": result}}
+
+
+@router.get("/activation/{plan_name}")
+def activation(plan_name: str):
+    code = plan_plugin.get_activation_code(plan_name)
+    if not code:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return {"activation": code}
+
+
+@router.get("/explain/pidgin/{plan_name}")
+def explain_pidgin(plan_name: str):
+    text = plan_plugin.explain_plan_in_pidgin(plan_name)
+    if not text:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return {"pidgin_explanation": text}
