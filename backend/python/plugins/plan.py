@@ -3,7 +3,10 @@ import logging
 from pathlib import Path
 from typing import List, Optional
 
-from ..models import MtnPlan
+try:
+    from ..models import MtnPlan
+except Exception:  # allow running module directly in tests
+    from models import MtnPlan
 
 logger = logging.getLogger("plan_plugin")
 

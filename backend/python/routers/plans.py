@@ -2,7 +2,10 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import List, Optional
 
-from ..plugins.plan_plugin import PlanPlugin
+try:
+    from ..plugins.plan import PlanPlugin
+except Exception:
+    from backend.python.plugins.plan import PlanPlugin
 
 router = APIRouter()
 

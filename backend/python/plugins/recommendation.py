@@ -3,7 +3,10 @@ import logging
 from pathlib import Path
 from typing import List, Dict
 
-from ..models import MtnPlan
+try:
+    from ..models import MtnPlan
+except Exception:
+    from models import MtnPlan
 
 logger = logging.getLogger("recommendation_plugin")
 
