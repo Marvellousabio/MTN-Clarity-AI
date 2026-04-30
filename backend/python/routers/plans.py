@@ -43,6 +43,9 @@ class SwitchOut(BaseModel):
     user: dict
     message: str
 
+    class Config:
+        extra = "allow"
+
 
 @router.get("/")
 def list_plans(category: str = Query("all", description="individual|business|youth|all")) -> list[dict]:
