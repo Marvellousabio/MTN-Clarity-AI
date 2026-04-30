@@ -51,4 +51,5 @@ export interface UserProfile {
   monthlySpend: number;
   dataBurnRate: 'Low' | 'Medium' | 'High';
   heavySocialUsage: boolean;
+  planDetails?: Plan;
 }

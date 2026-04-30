@@ -1,34 +1,47 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Check, X, TrendingUp, ChevronDown } from 'lucide-react';
-import { PLANS } from '../constants';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plan } from '../types';
+import api from '../services/api';
 
 interface PlanComparisonProps {
   currentPlanId: string;
   recommendedPlanId: string;
-  onSwitch: () => void;
+  onSwitch: (planId: string) => void;
 }
 
 export default function PlanComparison({ currentPlanId, recommendedPlanId, onSwitch }: PlanComparisonProps) {
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [leftPlanId, setLeftPlanId] = useState(currentPlanId);
   const [rightPlanId, setRightPlanId] = useState(recommendedPlanId);
   const [isLeftOpen, setIsLeftOpen] = useState(false);
   const [isRightOpen, setIsRightOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const leftPlan = PLANS.find(p => p.id === leftPlanId) || PLANS[0];
-  const rightPlan = PLANS.find(p => p.id === rightPlanId) || PLANS[1];
+  useEffect(() => {
+    api.get('/plans')
+      .then(res => setPlans(res.data))
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  if (isLoading || plans.length === 0) {
+    return <div className="p-6 text-center text-slate-400">Loading plans...</div>;
+  }
+
+  const leftPlan = plans.find(p => p.id === leftPlanId) || plans[0];
+  const rightPlan = plans.find(p => p.id === rightPlanId) || plans[1] || plans[0];
 
   const rows = [
-    { label: 'Monthly Cost', key: 'monthlyCost', formatter: (val: number) => `₦${val.toLocaleString()}` },
+    { label: 'Monthly Cost', key: 'monthlyCost', formatter: (val: number) => `₦${val?.toLocaleString()}` },
     { label: 'Data (GB)', key: 'dataGB', formatter: (val: number) => `${val}GB` },
-    { label: 'Call Minutes', key: 'callMinutes', formatter: (val: number) => `${val.toLocaleString()} min` },
-    { label: 'SMS Count', key: 'smsCount', formatter: (val: number) => val.toLocaleString() },
+    { label: 'Call Minutes', key: 'callMinutes', formatter: (val: number) => `${val?.toLocaleString()} min` },
+    { label: 'SMS Count', key: 'smsCount', formatter: (val: number) => val?.toLocaleString() },
     { label: 'Validity', key: 'validityDays', formatter: (val: number) => `${val} Days` },
     { label: 'Activation', key: 'activationCode' },
   ];
 
-  const savings = leftPlan.monthlyCost - rightPlan.monthlyCost;
+  const savings = (leftPlan?.monthlyCost || 0) - (rightPlan?.monthlyCost || 0);
 
   const PlanSelector = ({ 
     selected, 
@@ -51,7 +64,7 @@ export default function PlanComparison({ currentPlanId, recommendedPlanId, onSwi
         onClick={() => setIsOpen(!isOpen)}
         className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-center justify-between group hover:border-mtn-yellow transition-all"
       >
-        <span className="font-black text-mtn-blue text-sm md:text-lg">{selected.name}</span>
+        <span className="font-black text-mtn-blue text-sm md:text-lg">{selected?.name}</span>
         <ChevronDown className={`w-5 h-5 text-slate-400 group-hover:text-mtn-blue transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
@@ -71,14 +84,14 @@ export default function PlanComparison({ currentPlanId, recommendedPlanId, onSwi
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl z-30 overflow-hidden"
             >
-              {PLANS.map(p => (
+              {plans.map(p => (
                 <button
                   key={p.id}
                   onClick={() => {
                     onSelect(p.id);
                     setIsOpen(false);
                   }}
-                  className={`w-full text-left px-5 py-3 text-sm font-bold hover:bg-mtn-yellow/5 transition-colors border-b border-slate-50 last:border-0 ${selected.id === p.id ? 'text-mtn-blue bg-mtn-yellow/5' : 'text-slate-400'}`}
+                  className={`w-full text-left px-5 py-3 text-sm font-bold hover:bg-mtn-yellow/5 transition-colors border-b border-slate-50 last:border-0 ${selected?.id === p.id ? 'text-mtn-blue bg-mtn-yellow/5' : 'text-slate-400'}`}
                 >
                   {p.name}
                 </button>
@@ -142,7 +155,7 @@ export default function PlanComparison({ currentPlanId, recommendedPlanId, onSwi
 
         {/* Savings Highlight */}
         <motion.div
-          key={`savings-${leftPlan.id}-${rightPlan.id}`}
+          key={`savings-${leftPlan?.id}-${rightPlan?.id}`}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className={`col-span-2 ${savings >= 0 ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'} border p-6 md:p-8 rounded-[2.5rem] flex items-center justify-between mt-8`}
@@ -162,7 +175,7 @@ export default function PlanComparison({ currentPlanId, recommendedPlanId, onSwi
           <div className="hidden md:block">
              <div className={`text-[10px] font-black ${savings >= 0 ? 'text-green-700' : 'text-red-700'} uppercase tracking-widest text-right opacity-60`}>Efficiency Rating</div>
              <div className={`text-xl font-black ${savings >= 0 ? 'text-green-700' : 'text-red-700'} text-right`}>
-                {rightPlan.matchScore}%
+                {rightPlan?.matchScore || 0}%
              </div>
           </div>
         </motion.div>
@@ -170,10 +183,10 @@ export default function PlanComparison({ currentPlanId, recommendedPlanId, onSwi
         <div className="col-span-2 pt-12 max-w-md mx-auto w-full">
            <motion.button
               whileTap={{ scale: 0.95 }}
-              onClick={onSwitch}
+              onClick={() => onSwitch(rightPlanId)}
               className="w-full py-5 bg-mtn-blue text-white rounded-[2rem] font-black text-xl shadow-2xl shadow-mtn-blue/20 flex items-center justify-center gap-3 hover:bg-slate-800 transition-all"
            >
-             Switch to {rightPlan.name} (*312#)
+             Switch to {rightPlan?.name} (*312#)
            </motion.button>
            <p className="text-center text-[10px] text-slate-400 mt-6 font-bold uppercase tracking-[0.2em]">Dial the code to confirm activation</p>
         </div>

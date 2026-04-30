@@ -4,6 +4,7 @@ import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useState } from 'react';
 import NotificationCenter from './NotificationCenter';
 import SettingsPanel from './SettingsPanel';
+import { useAppContext } from '../context/AppContext';
 
 function UserImage() {
   return (
@@ -39,6 +40,7 @@ export default function Layout({
   const navigate = useNavigate();
   const location = useLocation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { user } = useAppContext();
 
   const handleTabChange = (tabId: string) => {
     if (tabId === 'profile') {
@@ -104,8 +106,8 @@ export default function Layout({
                   <UserImage />
                 </div>
                 <div>
-                  <div className="font-bold text-xs text-mtn-blue">Aisha O.</div>
-                  <div className="text-[8px] text-slate-400 font-medium">MTN: 0803XXXXXXX</div>
+                  <div className="font-bold text-xs text-mtn-blue">{user?.name || 'Guest User'}</div>
+                  <div className="text-[8px] text-slate-400 font-medium">MTN: {user?.phoneNumber || 'No phone number'}</div>
                 </div>
               </div>
             </div>

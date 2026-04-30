@@ -4,6 +4,8 @@ import { Send, User, Mic, ArrowLeft, MoreHorizontal } from 'lucide-react';
 import { STRINGS } from '../constants';
 import { Language, ChatMessage } from '../types';
 import { useNotifications } from '../context/NotificationContext';
+import { useAppContext } from '../context/AppContext';
+import api from '../services/api';
 
 interface ChatAssistantProps {
   language: Language;
@@ -13,11 +15,12 @@ interface ChatAssistantProps {
 
 export default function ChatAssistant({ language, onBack, initialMessage }: ChatAssistantProps) {
   const { addNotification } = useNotifications();
+  const { user } = useAppContext();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       role: 'ai',
-      text: STRINGS[language].chatInitial,
+      text: STRINGS[language].chatInitial.replace('{name}', user?.name || 'Guest'),
       timestamp: new Date(),
       suggestions: [
         STRINGS[language].whyMyDataFinish,
@@ -55,10 +58,13 @@ export default function ChatAssistant({ language, onBack, initialMessage }: Chat
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponseText = getAiResponse(text, language);
-      const aiSuggestions = getSuggestions(text, language);
+    try {
+      const response = await api.post('/chat/message', {
+        message: text,
+        language
+      });
+      
+      const { text: aiResponseText, suggestions: aiSuggestions } = response.data;
       
       // Check if we should trigger a notification
       const lowerText = text.toLowerCase();
@@ -78,9 +84,20 @@ export default function ChatAssistant({ language, onBack, initialMessage }: Chat
         timestamp: new Date(),
         suggestions: aiSuggestions,
       };
-      setIsTyping(false);
+      
       setMessages(prev => [...prev, aiMsg]);
-    }, 1500);
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        text: "I'm having trouble connecting to my servers right now. Please try again later.",
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
@@ -224,57 +241,4 @@ function AssistantAvatar() {
       />
     </svg>
   );
-}
-
-function getAiResponse(text: string, lang: Language): string {
-  const t = text.toLowerCase();
-  
-  if (lang === 'PIDGIN') {
-    if (t.includes('data') || t.includes('finish')) return "You spend 62% of your data on TikTok and Instagram. Pulse Plus fit save you better money o! You want make I compare am for you?";
-    if (t.includes('cheaper') || t.includes('saving')) return "Pulse Plus for ₦3,500 go give you 15GB plus extra for Instagram. Compared to your old plan, you go save ₦800 every month.";
-    if (t.includes('compare')) return "Comparing Pulse Plus and BizPlus Starter: Pulse Plus better for data, BizPlus good for shared business lines. Pulse is 84% better fit for you.";
-    if (t.includes('switch') || t.includes('activation')) return "To switch, just dial *131*5# on your phone. You want make I show you how rollover dey work?";
-    return "I hear you. ClarityAI dey here to help you rearrange your MTN lifestyle and save better money.";
-  }
-
-  if (t.includes('data') || t.includes('usage')) return "Analysis shows you spend 62% of your data on social apps (TikTok & Instagram). A targeted bundle like Pulse Plus would reduce your primary data drain. Should we compare it?";
-  if (t.includes('cheaper') || t.includes('saving')) return "Switching to Pulse Plus at ₦3,500 offers 15GB + Social bonuses. This would save you approximately ₦800 monthly while increasing your usable data.";
-  if (t.includes('compare')) return "Comparing Pulse Plus vs BizPlus Starter: Pulse Plus offers social-specific data which matches your high social usage (84% score). BizPlus is tailored for SMEs with shared pools.";
-  if (t.includes('switch') || t.includes('activation')) return "The activation code for Pulse Plus is *131*5#. Once activated, your existing data will rollover if you renew before expiry.";
-  
-  return "I'm ClarityAI, your MTN plan assistant. I can analyze your usage, recommend cheaper bundles, or help you compare different MTN tariffs. What can I help you with today?";
-}
-
-function getSuggestions(text: string, lang: Language): string[] {
-  const t = text.toLowerCase();
-  
-  // Logic for Pidgin
-  if (lang === 'PIDGIN') {
-    if (t.includes('data') || t.includes('finish')) {
-      return ['Show cheaper bundles', 'Compare Plans'];
-    }
-    if (t.includes('compare')) {
-      return ['Show Savings', 'How to switch?'];
-    }
-    if (t.includes('saving') || t.includes('cheaper')) {
-      return ['Compare Plans', 'Send me activation code'];
-    }
-    return ['Why my data finish?', 'Show cheaper bundles'];
-  }
-
-  // Standard English logic
-  if (t.includes('data') || t.includes('usage')) {
-    return ['Compare Plans', 'Show Savings'];
-  }
-  if (t.includes('compare')) {
-    return ['Show Savings', 'Switch Bundle'];
-  }
-  if (t.includes('saving') || t.includes('cheaper')) {
-    return ['Compare Plans', 'Activation Code'];
-  }
-  if (t.includes('switch') || t.includes('activation')) {
-    return ['View all plans', 'Analyze overspend'];
-  }
-
-  return ['Compare Pulse Plus vs BizPlus', 'Show cheaper bundles', 'Why my data finish fast?'];
 }

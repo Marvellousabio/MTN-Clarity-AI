@@ -26,34 +26,7 @@ interface NotificationProviderProps {
 }
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'savings',
-      title: 'Potential Savings Found',
-      message: 'Switch to MTN Pulse Plus and save ₦800/month',
-      time: new Date(Date.now() - 1000 * 60 * 5),
-      read: false,
-      action: 'plans',
-    },
-    {
-      id: '2',
-      type: 'plan_update',
-      title: 'Plan Renewal Reminder',
-      message: 'Your MTN Pulse Flexi renews in 3 days',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      read: false,
-      action: 'profile',
-    },
-    {
-      id: '3',
-      type: 'system',
-      title: 'Welcome to ClarityAI',
-      message: 'Complete your profile for personalized recommendations',
-      time: new Date(Date.now() - 1000 * 60 * 60 * 24),
-      read: true,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

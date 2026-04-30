@@ -9,6 +9,7 @@ import ChatAssistant from './components/ChatAssistant';
 import PlanComparison from './components/PlanComparison';
 import Analytics from './components/Analytics';
 import Profile from './components/Profile';
+import api from './services/api';
 
 function LandingPageRoute() {
   const navigate = useNavigate();
@@ -69,11 +70,23 @@ function ChatRoute() {
 }
 
 function PlansRoute() {
+  const { user, setUser } = useAppContext();
+  
+  const handleSwitch = async (planId: string) => {
+    try {
+      const response = await api.post('/plans/switch', { planId });
+      setUser(response.data.user);
+      alert(response.data.message);
+    } catch(err: any) {
+      alert(err.response?.data?.error?.message || 'Failed to switch plan');
+    }
+  };
+
   return (
     <PlanComparison
-      currentPlanId="pulse-flexi"
-      recommendedPlanId="pulse-plus"
-      onSwitch={() => alert('Switching plan successful! USSD: *312# sent.')}
+      currentPlanId={user?.currentPlanId || "pulse-flexi"}
+      recommendedPlanId="mtn-pulse-plus"
+      onSwitch={handleSwitch}
     />
   );
 }

@@ -2,6 +2,8 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, Phone } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import api from '../services/api';
+import { useAppContext } from '../context/AppContext';
 
 interface SignInProps {
   onSignIn: () => void;
@@ -15,14 +17,31 @@ export default function SignIn({ onSignIn, onBack, onSwitchToSignIn }: SignInPro
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const { setIsAuthenticated, setUser } = useAppContext();
+  const [error, setError] = useState('');
+
   const handleSignIn = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    setError('');
+    
+    try {
+      const response = await api.post('/auth/login', {
+        email: phone,
+        password: password
+      });
+      
+      localStorage.setItem('accessToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+      
+      setUser(response.data.user);
+      setIsAuthenticated(true);
       onSignIn();
-    }, 1500);
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'Failed to sign in. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleMTNLogin = () => {
@@ -80,6 +99,12 @@ export default function SignIn({ onSignIn, onBack, onSwitchToSignIn }: SignInPro
             <span className="text-xs font-black text-slate-400 uppercase tracking-widest">or sign in with email</span>
             <div className="flex-1 h-px bg-slate-200" />
           </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-bold text-center">
+              {error}
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSignIn} className="space-y-4">

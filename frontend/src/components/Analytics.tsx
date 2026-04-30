@@ -1,9 +1,28 @@
 import { motion } from 'motion/react';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { USAGE_STATS } from '../constants';
 import { TrendingDown, Smartphone, AlertCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import api from '../services/api';
 
 export default function Analytics() {
+  const [usageStats, setUsageStats] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/usage/current')
+      .then(res => {
+        if (res.data && res.data.usageByCategory) {
+          setUsageStats(res.data.usageByCategory);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  if (isLoading) {
+    return <div className="p-6 text-center text-slate-400">Loading insights...</div>;
+  }
+
   return (
     <div className="p-6 pb-24">
       <header className="mb-8">
@@ -17,7 +36,7 @@ export default function Analytics() {
           <ResponsiveContainer width="100%" height="100%">
             <RePieChart>
               <Pie
-                data={USAGE_STATS}
+                data={usageStats}
                 cx="50%"
                 cy="50%"
                 innerRadius={70}
@@ -26,7 +45,7 @@ export default function Analytics() {
                 dataKey="percentage"
                 stroke="none"
               >
-                {USAGE_STATS.map((entry, index) => (
+                {usageStats.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
@@ -37,13 +56,15 @@ export default function Analytics() {
             </RePieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-4xl font-black text-mtn-blue">62%</span>
+            <span className="text-4xl font-black text-mtn-blue">
+              {usageStats.length > 0 ? usageStats[0].percentage + '%' : '0%'}
+            </span>
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active</span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-1 gap-x-8 gap-y-6 w-full md:w-1/2 mt-4">
-          {USAGE_STATS.map((stat) => (
+          {usageStats.map((stat) => (
             <div key={stat.category} className="flex items-center gap-4 group">
               <div className="w-4 h-4 rounded-full group-hover:scale-125 transition-transform" style={{ backgroundColor: stat.color }} />
               <div className="flex-1">
