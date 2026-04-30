@@ -40,14 +40,14 @@ const helpTopics: HelpTopic[] = [
 
 export default function Profile({ onSignOut }: ProfileProps) {
   const [isEditingAccount, setIsEditingAccount] = useState(false);
-  const { language } = useAppContext();
+  const { language, user, logout } = useAppContext();
   const { notifications, clearAllNotifications } = useNotifications();
   
   const [activeModal, setActiveModal] = useState<'privacy' | 'help' | null>(null);
   const [accountData, setAccountData] = useState<AccountData>({
-    phone: '0803 123 4567',
-    email: 'aisha@example.com',
-    name: 'Aisha Ogunleke',
+    phone: user?.phoneNumber || '',
+    email: user?.email || '',
+    name: user?.name || '',
   });
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>({
@@ -59,6 +59,7 @@ export default function Profile({ onSignOut }: ProfileProps) {
 
   const handleSignOut = () => {
     if (window.confirm('Are you sure you want to sign out?')) {
+      logout();
       onSignOut();
     }
   };
@@ -144,7 +145,7 @@ export default function Profile({ onSignOut }: ProfileProps) {
               <User className="w-8 h-8 text-mtn-blue" />
             </div>
           </div>
-          <h2 className="text-2xl font-black mb-1">{accountData.name}</h2>
+          <h2 className="text-2xl font-black mb-1">{user?.name || 'User'}</h2>
           <p className="text-white/70 font-medium">MTN Premium User</p>
           <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full text-sm font-bold">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -229,9 +230,9 @@ export default function Profile({ onSignOut }: ProfileProps) {
                               onClick={() => {
                                 setIsEditingAccount(false);
                                 setAccountData({
-                                  phone: '0803 123 4567',
-                                  email: 'aisha@example.com',
-                                  name: 'Aisha Ogunleke',
+                                  phone: user?.phoneNumber || '',
+                                  email: user?.email || '',
+                                  name: user?.name || '',
                                 });
                               }}
                               className="p-1.5 bg-red-500 text-white rounded-lg"

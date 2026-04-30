@@ -1,9 +1,11 @@
 import { motion } from 'motion/react';
-import { ChevronRight, ArrowUpRight, TrendingDown, Zap, HelpCircle, Smartphone, Bell } from 'lucide-react';
-import { STRINGS, MOCK_USER, PLANS } from '../constants';
+import { ChevronRight, ArrowUpRight, TrendingDown, Zap, HelpCircle, Smartphone } from 'lucide-react';
+import { STRINGS } from '../constants';
 import { Language } from '../types';
 import { useNotifications } from '../context/NotificationContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useAppContext } from '../context/AppContext';
+import api from '../services/api';
 
 interface DashboardProps {
   language: Language;
@@ -11,14 +13,23 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ language, onAction }: DashboardProps) {
-  const currentPlan = PLANS.find(p => p.id === MOCK_USER.currentPlanId) || PLANS[0];
+  const { user } = useAppContext();
   const t = STRINGS[language];
   const { addNotification, notifications } = useNotifications();
+  const [usageData, setUsageData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Demo: Simulate a new notification when dashboard loads (for testing)
+  const currentPlan = user?.planDetails;
+
   useEffect(() => {
+    // Fetch usage data
+    api.get('/usage/current')
+      .then(res => setUsageData(res.data))
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+      
     const timer = setTimeout(() => {
-      if (notifications.length <= 2) { // Only add if not many notifications already
+      if (notifications.length <= 2) {
         addNotification({
           type: 'system',
           title: 'Dashboard Updated',
@@ -35,6 +46,10 @@ export default function Dashboard({ language, onAction }: DashboardProps) {
     { id: 'cheaper', text: t.showCheaper, icon: TrendingDown },
   ];
 
+  if (isLoading || !user) {
+    return <div className="p-6 text-center text-slate-400">Loading your dashboard...</div>;
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -45,7 +60,7 @@ export default function Dashboard({ language, onAction }: DashboardProps) {
       >
         <div>
           <h2 className="text-2xl font-black text-mtn-blue tracking-tight">
-            {t.welcome} <span className="text-mtn-yellow">{MOCK_USER.name} 👋</span>
+            {t.welcome} <span className="text-mtn-yellow">{user.name} 👋</span>
           </h2>
           <p className="text-slate-400 text-sm font-medium">MTN ClarityAI Premium</p>
         </div>
@@ -94,7 +109,6 @@ export default function Dashboard({ language, onAction }: DashboardProps) {
               </div>
             </div>
           </div>
-          {/* Abstract pattern */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
         </motion.div>
@@ -110,11 +124,13 @@ export default function Dashboard({ language, onAction }: DashboardProps) {
               <div className="p-3 bg-mtn-yellow/10 rounded-2xl">
                 <Zap className="w-5 h-5 text-mtn-yellow fill-mtn-yellow" />
               </div>
-              <span className="text-[10px] font-black text-mtn-blue px-3 py-1 bg-mtn-yellow rounded-full">{currentPlan.matchScore}% Match</span>
+              <span className="text-[10px] font-black text-mtn-blue px-3 py-1 bg-mtn-yellow rounded-full">
+                {currentPlan ? `${currentPlan.matchScore}% Match` : 'No Plan'}
+              </span>
             </div>
             <div>
               <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Your Active Plan</p>
-              <h4 className="text-xl font-black text-mtn-blue leading-tight">{currentPlan.name}</h4>
+              <h4 className="text-xl font-black text-mtn-blue leading-tight">{currentPlan ? currentPlan.name : 'No Active Plan'}</h4>
             </div>
           </motion.div>
 

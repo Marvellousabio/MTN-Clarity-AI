@@ -2,6 +2,8 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, Phone, User, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import api from '../services/api';
+import { useAppContext } from '../context/AppContext';
 
 interface SignUpProps {
   onSignUp: () => void;
@@ -18,6 +20,9 @@ export default function SignUp({ onSignUp, onBack, onSwitchToSignIn }: SignUpPro
   const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  const { setIsAuthenticated, setUser } = useAppContext();
+  const [error, setError] = useState('');
+
   const handleSignUp = async (e: FormEvent) => {
     e.preventDefault();
     if (!agreedToTerms) {
@@ -25,11 +30,27 @@ export default function SignUp({ onSignUp, onBack, onSwitchToSignIn }: SignUpPro
       return;
     }
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    setError('');
+    
+    try {
+      const response = await api.post('/auth/register', {
+        name,
+        email,
+        phoneNumber: phone,
+        password
+      });
+      
+      localStorage.setItem('accessToken', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+      
+      setUser(response.data.user);
+      setIsAuthenticated(true);
       onSignUp();
-    }, 1500);
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'Failed to create account. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -62,6 +83,12 @@ export default function SignUp({ onSignUp, onBack, onSwitchToSignIn }: SignUpPro
 
           <h1 className="text-3xl font-black text-mtn-blue mb-2 text-center">Create Account</h1>
           <p className="text-slate-400 text-center mb-8 font-medium">Join MTN ClarityAI and start saving today</p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-bold text-center">
+              {error}
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSignUp} className="space-y-4">
