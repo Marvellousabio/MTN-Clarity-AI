@@ -13,7 +13,7 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ language, onAction }: DashboardProps) {
-  const { user } = useAppContext();
+  const { user, userId } = useAppContext();
   const t = STRINGS[language];
   const { addNotification, notifications } = useNotifications();
   const [usageData, setUsageData] = useState<any>(null);
@@ -22,12 +22,15 @@ export default function Dashboard({ language, onAction }: DashboardProps) {
   const currentPlan = user?.planDetails;
 
   useEffect(() => {
-    // Fetch usage data
-    api.get('/usage/current')
-      .then(res => setUsageData(res.data))
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
-      
+    if (userId) {
+      api.get('/usage/current', { params: { userId } })
+        .then(res => setUsageData(res.data))
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
+    }
+    
     const timer = setTimeout(() => {
       if (notifications.length <= 2) {
         addNotification({
@@ -38,7 +41,7 @@ export default function Dashboard({ language, onAction }: DashboardProps) {
       }
     }, 3000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [userId]);
 
   const quickActions = [
     { id: 'why-data', text: t.whyMyDataFinish, icon: HelpCircle },

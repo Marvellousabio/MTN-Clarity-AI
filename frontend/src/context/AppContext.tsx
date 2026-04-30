@@ -2,6 +2,18 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import type { Language, UserProfile } from '../types';
 import api from '../services/api';
 
+// Simple JWT decode (no verification needed for extracting sub)
+function decodeJwt(token: string): { sub: string } | null {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const decoded = JSON.parse(atob(payload));
+    return decoded as { sub: string };
+  } catch {
+    return null;
+  }
+}
+
 interface AppContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -9,6 +21,7 @@ interface AppContextType {
   setIsAuthenticated: (auth: boolean) => void;
   user: UserProfile | null;
   setUser: (user: UserProfile | null) => void;
+  userId: string | null;
   navigate: (path: string) => void;
   logout: () => void;
 }
@@ -32,24 +45,32 @@ export function AppProvider({ children, navigate }: AppProviderProps) {
   const [language, setLanguage] = useState<Language>('EN');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Initial load
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-      api.get('/user/profile')
-        .then(res => {
-          setUser(res.data);
-          setIsAuthenticated(true);
-        })
-        .catch(() => {
-          // Token invalid or expired without refresh
-          logout();
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      const decoded = decodeJwt(token);
+      const uid = decoded?.sub || null;
+      setUserId(uid);
+
+      if (uid) {
+        api.get('/user/profile', { params: { userId: uid } })
+          .then(res => {
+            setUser(res.data);
+            setIsAuthenticated(true);
+          })
+          .catch(() => {
+            logout();
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      } else {
+        setIsLoading(false);
+      }
     } else {
       setIsLoading(false);
     }
@@ -68,16 +89,25 @@ export function AppProvider({ children, navigate }: AppProviderProps) {
   }, [navigate]);
 
   const logout = () => {
-    // Fire and forget logout to backend to invalidate refresh token
     const refreshToken = localStorage.getItem('refreshToken');
+    const API_URL = import.meta.env.VITE_API_URL || 'https://mtn-clarity-ai-be.onrender.com/api';
+    
     if (refreshToken) {
-      api.post('/auth/logout', { refreshToken }).catch(console.error);
+      // Use direct fetch to send refresh token in Authorization header
+      fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${refreshToken}`,
+          'Content-Type': 'application/json',
+        },
+      }).catch(console.error);
     }
     
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setIsAuthenticated(false);
     setUser(null);
+    setUserId(null);
     navigate('/signin');
   };
 
@@ -86,7 +116,7 @@ export function AppProvider({ children, navigate }: AppProviderProps) {
   }
 
   return (
-    <AppContext.Provider value={{ language, setLanguage, isAuthenticated, setIsAuthenticated, user, setUser, navigate, logout }}>
+    <AppContext.Provider value={{ language, setLanguage, isAuthenticated, setIsAuthenticated, user, setUser, userId, navigate, logout }}>
       {children}
     </AppContext.Provider>
   );

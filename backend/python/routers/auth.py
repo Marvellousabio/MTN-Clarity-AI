@@ -4,17 +4,36 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Header, HTTPException, status
+from fastapi import APIRouter, HTTPException, Header, status, Depends
+from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, Field
 
 try:
+    from ..config import get_settings
     from ..services.auth_service import AuthService
 except Exception:  # pragma: no cover - local execution fallback
+    from config import get_settings
     from services.auth_service import AuthService
+import jwt
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 auth_service = AuthService()
+settings = get_settings()
+
+
+def get_current_user_id(authorization: str = Header(...)) -> str:
+    """Extract user ID from JWT bearer token."""
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization header format")
+    token = authorization.removeprefix("Bearer ").strip()
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        if payload.get("typ") != "access":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+        return payload["sub"]
+    except InvalidTokenError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token") from exc
 
 
 class LoginIn(BaseModel):

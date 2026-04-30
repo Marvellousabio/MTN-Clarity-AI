@@ -1,23 +1,29 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { TrendingDown, Smartphone, AlertCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import api from '../services/api';
+import { useAppContext } from '../context/AppContext';
 
 export default function Analytics() {
+  const { userId } = useAppContext();
   const [usageStats, setUsageStats] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/usage/current')
-      .then(res => {
-        if (res.data && res.data.usageByCategory) {
-          setUsageStats(res.data.usageByCategory);
-        }
-      })
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
-  }, []);
+    if (userId) {
+      api.get('/usage/current', { params: { userId } })
+        .then(res => {
+          if (res.data && res.data.usageByCategory) {
+            setUsageStats(res.data.usageByCategory);
+          }
+        })
+        .catch(console.error)
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
+    }
+  }, [userId]);
 
   if (isLoading) {
     return <div className="p-6 text-center text-slate-400">Loading insights...</div>;
